@@ -1,0 +1,56 @@
+name: registro_catechismo
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Gestione Stato e Navigazione (Mantenuti)
+  flutter_riverpod: ^2.6.1
+  go_router: ^17.2.3
+  flutter_launcher_icons: ^0.13.1
+
+  # Database Locale e Crittografia (Nuovi)
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^10.2.0 # Serve per salvare la chiave di cifratura in modo sicuro nel portachiavi del telefono
+
+  # Scambio Dati e Condivisione (Nuovi)
+  share_plus: ^13.1.0   # Permette di inviare il file di backup a un altro telefono tramite qualsiasi app
+  file_picker: ^12.0.0-beta.4  # Permette all'altro telefono di selezionare il file ricevuto per importarlo
+
+  # UI, Font e Utility (Mantenuti)
+  google_fonts: ^8.1.0
+  responsive_framework: ^1.5.1
+  flutter_animate: ^4.5.2
+  intl: ^0.20.2
+  url_launcher: ^6.3.0
+  pdf: ^3.10.0
+  printing: ^5.11.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png" 
+
+  flutter_lints: ^6.0.0
+  
+  # Generatore di codice per Hive (Nuovi)
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logo.png

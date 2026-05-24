@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wiredash/wiredash.dart'; // <-- Importazione di Wiredash
 
 import '../../core/auth/auth_provider.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -15,76 +16,107 @@ class SettingsPage extends ConsumerWidget {
     final canManageCatechists = data['canManageCatechists'] == true;
 
     return AppScaffold(
-          title: 'Impostazioni',
+      title: 'Impostazioni',
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
 
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-
-              /// =========================
-              /// PROFILE
-              /// =========================
-              _ProfileCard(
-                name: data['name'] ?? '',
-                role: 'Catechista',
-              ),
-
-              const SizedBox(height: 20),
-
-              /// =========================
-              /// GESTIONE
-              /// =========================
-              const _SectionTitle(title: 'Gestione'),
-
-              const SizedBox(height: 12),
-
-              _SettingsItem(
-                icon: Icons.groups_rounded,
-                title: 'Gestione Gruppo',
-                subtitle: 'Gestisci il gruppo e i ragazzi',
-                color: const Color(0xFF174A7E),
-                onTap: () => context.go('/group-management'),
-              ),
-
-              const SizedBox(height: 24),
-
-              /// =========================
-              /// SICUREZZA
-              /// =========================
-              const _SectionTitle(title: 'Sicurezza'),
-
-              const SizedBox(height: 12),
-
-              _SettingsItem(
-                icon: Icons.lock_rounded,
-                title: 'Privacy e sicurezza',
-                subtitle: 'Gestisci i tuoi dati personali',
-                color: Colors.green,
-                onTap: () {
-                   context.go('/privacy-security');
-                },
-              ),
-
-              const SizedBox(height: 30),
-
-              /// =========================
-              /// LOGOUT
-              /// =========================
-              _SettingsItem(
-                icon: Icons.logout_rounded,
-                title: 'Logout',
-                subtitle: 'Esci dall’app',
-                color: Colors.red,
-                isDestructive: true,
-                onTap: () async {
-                  await ref.read(authStateProvider.notifier).lock();
-                  if (context.mounted) {
-                    context.go('/');
-                  }
-                },
-              ),
-            ],
+          /// =========================
+          /// PROFILE
+          /// =========================
+          _ProfileCard(
+            name: data['name'] ?? '',
+            role: 'Catechista',
           ),
+
+          const SizedBox(height: 20),
+
+          /// =========================
+          /// GESTIONE
+          /// =========================
+          const _SectionTitle(title: 'Gestione'),
+
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.groups_rounded,
+            title: 'Gestione Gruppo',
+            subtitle: 'Gestisci il gruppo e i ragazzi',
+            color: const Color(0xFF174A7E),
+            onTap: () => context.go('/group-management'),
+          ),
+
+          // Esempio opzionale di utilizzo della tua variabile sui permessi
+          if (canManageCatechists) ...[
+            const SizedBox(height: 12),
+            _SettingsItem(
+              icon: Icons.badge_rounded,
+              title: 'Gestione Catechisti',
+              subtitle: 'Amministra i profili dei catechisti',
+              color: const Color(0xFF174A7E),
+              onTap: () => context.go('/catechists-management'),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+
+          /// =========================
+          /// ASSISTENZA & FEEDBACK
+          /// =========================
+          const _SectionTitle(title: 'Supporto'),
+
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.feedback_rounded,
+            title: 'Invia Feedback',
+            subtitle: 'Segnala un problema o suggerisci un’idea',
+            color: Colors.orange,
+            onTap: () {
+              // Apre la finestra di dialogo nativa e interattiva di Wiredash
+              Wiredash.of(context).show(inheritMaterialTheme: true);
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          /// =========================
+          /// SICUREZZA
+          /// =========================
+          const _SectionTitle(title: 'Sicurezza'),
+
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.lock_rounded,
+            title: 'Privacy e sicurezza',
+            subtitle: 'Gestisci i tuoi dati personali',
+            color: Colors.green,
+            onTap: () {
+              context.go('/privacy-security');
+            },
+          ),
+
+          const SizedBox(height: 30),
+
+          /// =========================
+          /// LOGOUT
+          /// =========================
+          _SettingsItem(
+            icon: Icons.logout_rounded,
+            title: 'Logout',
+            subtitle: 'Esci dall’app',
+            color: Colors.red,
+            isDestructive: true,
+            onTap: () async {
+              await ref.read(authStateProvider.notifier).lock();
+              if (context.mounted) {
+                context.go('/');
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -223,7 +255,7 @@ class _SettingsItem extends StatelessWidget {
                     : color.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: color),
+              child: Icon(icon, color: isDestructive ? Colors.red : color),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -235,9 +267,7 @@ class _SettingsItem extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: isDestructive
-                          ? Colors.red
-                          : Colors.black87,
+                      color: isDestructive ? Colors.red : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 3),

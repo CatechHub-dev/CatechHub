@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wiredash/wiredash.dart'; // <-- Importazione di Wiredash
 
 import 'app/router.dart';
 import 'core/auth/auth_provider.dart';
@@ -36,19 +37,27 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primaryColor: const Color(0xFF174A7E)),
-      home: authState.when(
-        data: (_) {
-          return Router(
-            routerDelegate: appRouter.routerDelegate,
-            routeInformationParser: appRouter.routeInformationParser,
-            routeInformationProvider: appRouter.routeInformationProvider,
-          );
-        },
-        loading: () => const _LoadingScreen(),
-        error: (err, _) => _ErrorScreen(message: 'Errore Auth: $err'),
+    // Recupero sicuro delle chiavi a tempo di compilazione tramite --dart-define o --dart-define-from-file
+    const String wiredashProjectId = String.fromEnvironment('WIREDASH_PROJECT_ID');
+    const String wiredashApiSecret = String.fromEnvironment('WIREDASH_API_SECRET');
+
+    return Wiredash(
+      projectId: wiredashProjectId,
+      secret: wiredashApiSecret,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(primaryColor: const Color(0xFF174A7E)),
+        home: authState.when(
+          data: (_) {
+            return Router(
+              routerDelegate: appRouter.routerDelegate,
+              routeInformationParser: appRouter.routeInformationParser,
+              routeInformationProvider: appRouter.routeInformationProvider,
+            );
+          },
+          loading: () => const _LoadingScreen(),
+          error: (err, _) => _ErrorScreen(message: 'Errore Auth: $err'),
+        ),
       ),
     );
   }
@@ -95,6 +104,7 @@ class UpdateService {
       android: initializationSettingsAndroid,
     );
 
+    // Corretto: adesso viene passata la variabile corretta definita poche righe sopra
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {

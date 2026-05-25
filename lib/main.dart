@@ -18,9 +18,6 @@ Future<void> main() async {
   await initializeDateFormatting('it_IT', null);
   await LocalDatabase.init();
 
-  // Reset della sessione al startup: forza il re-login anche se l'app è stata killata
-  LocalDatabase.auth().put('isLoggedIn', false);
-
   // Inizializza il plugin delle notifiche locali
   await UpdateService.initNotifications();
 
@@ -36,6 +33,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
+    final router = ref.watch(appRouterProvider);
 
     // Recupero sicuro delle chiavi a tempo di compilazione tramite --dart-define o --dart-define-from-file
     const String wiredashProjectId = String.fromEnvironment('WIREDASH_PROJECT_ID');
@@ -50,9 +48,9 @@ class MyApp extends ConsumerWidget {
         home: authState.when(
           data: (_) {
             return Router(
-              routerDelegate: appRouter.routerDelegate,
-              routeInformationParser: appRouter.routeInformationParser,
-              routeInformationProvider: appRouter.routeInformationProvider,
+              routerDelegate: router.routerDelegate,
+              routeInformationParser: router.routeInformationParser,
+              routeInformationProvider: router.routeInformationProvider,
             );
           },
           loading: () => const _LoadingScreen(),
@@ -129,7 +127,7 @@ class UpdateService {
 
         // Richiesta HTTP alle API pubbliche di GitHub
         final response = await http.get(
-          Uri.parse('https://api.github.com/repos/delelimed/CatechHub/releases/latest'),
+          Uri.parse('https://api.github.com/repos/CatechHub-dev/CatechHub/releases/latest'),
         );
 
         if (response.statusCode == 200) {

@@ -46,18 +46,6 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => context.go('/group-management'),
           ),
 
-          // Esempio opzionale di utilizzo della tua variabile sui permessi
-          if (canManageCatechists) ...[
-            const SizedBox(height: 12),
-            _SettingsItem(
-              icon: Icons.badge_rounded,
-              title: 'Gestione Catechisti',
-              subtitle: 'Amministra i profili dei catechisti',
-              color: const Color(0xFF174A7E),
-              onTap: () => context.go('/catechists-management'),
-            ),
-          ],
-
           const SizedBox(height: 24),
 
           /// =========================

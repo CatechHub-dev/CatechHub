@@ -22,8 +22,8 @@
 ########################################
 # HIVE (DATABASE LOCALE)
 ########################################
--keep class * extends com.hivedb.HiveObject { *; }
 -keep class * extends io.hive.** { *; }
+-keep class * extends io.isar.hive.** { *; }
 -keep class *Adapter { *; }
 -keep class io.invertase.firebase.** { *; }
 
@@ -51,12 +51,15 @@
 -keep class net.nfet.flutter.printing.** { *; }
 
 ########################################
-# GOOGLE SERVICES & PLAY STORE
+# GOOGLE SERVICES & PLAY STORE (RISOLUZIONE ERRORE COMPILAZIONE)
 ########################################
 -keep class com.google.android.gms.** { *; }
 -keep class com.google.android.play.core.splitcompat.** { *; }
 -keep class com.google.android.play.core.splitinstall.** { *; }
 -keep class com.google.android.play.core.tasks.** { *; }
+
+# Dice a R8 di ignorare le classi mancanti di Google Play (Deferred Components non usati)
+-dontwarn com.google.android.play.core.**
 
 ########################################
 # PROTEZIONE SERIALIZZAZIONE JSON (GSON / REFLECTION)

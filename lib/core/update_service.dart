@@ -41,7 +41,7 @@ class UpdateService {
 
         // 3. Interroga le API di GitHub per l'ultima release
         final response = await http.get(
-          Uri.parse('https://api.github.com/repos/delelimed/CatechHub/releases/latest'),
+          Uri.parse('https://api.github.com/repos/CatechHub-dev/CatechHub/releases/latest'),
         );
 
         if (response.statusCode == 200) {

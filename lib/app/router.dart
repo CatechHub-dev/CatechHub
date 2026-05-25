@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/auth/auth_provider.dart';
 import '../core/storage/local_database.dart';
 import '../features/auth/login_page.dart';
 import '../features/classes/my_group_page.dart';
@@ -18,26 +20,30 @@ import '../features/settings/privacy.dart';
 import '../features/documents/document_detail_page.dart';
 import '../features/sussidio/sussidio.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/',
+class _AuthStateNotifier extends ChangeNotifier {
+  _AuthStateNotifier(Ref ref) {
+    ref.listen(authStateProvider, (prev, next) {
+      notifyListeners();
+    });
+  }
+}
 
-  redirect: (context, state) {
-    // 📦 Accediamo al box crittografato aperto nel main
-    final box = LocalDatabase.auth();
-    
-    // Controlliamo se esiste una sessione attiva o un flag di sblocco locale
-    // Puoi impostare questo valore su 'true' quando la password locale è corretta
-    final bool isLoggedLocally = box.get('isLoggedIn', defaultValue: false);
-    final isLoginPath = state.matchedLocation == '/login';
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = _AuthStateNotifier(ref);
 
-    // 🔐 Logica di reindirizzamento offline
-    if (!isLoggedLocally && !isLoginPath) return '/login';
-    if (isLoggedLocally && isLoginPath) return '/';
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: refreshNotifier,
+    redirect: (context, state) {
+      final box = LocalDatabase.auth();
+      final isLoggedLocally = box.get('isLoggedIn', defaultValue: false);
+      final isLoginPath = state.matchedLocation == '/login';
 
-    return null;
-  },
-
-  routes: [
+      if (!isLoggedLocally && !isLoginPath) return '/login';
+      if (isLoggedLocally && isLoginPath) return '/';
+      return null;
+    },
+    routes: [
     /// AUTH (Schermata di sblocco locale)
     GoRoute(
       path: '/login',
@@ -128,4 +134,5 @@ final appRouter = GoRouter(
       builder: (context, state) => const SussidioPage(),
     ),
   ],
-);
+  );
+});

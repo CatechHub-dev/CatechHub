@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:wiredash/wiredash.dart'; // <-- Importazione di Wiredash
+import 'package:wiredash/wiredash.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/security/privacy_settings.dart';
@@ -129,6 +129,16 @@ class SettingsPage extends ConsumerWidget {
             subtitle: 'Controlla nuove versioni',
             color: const Color(0xFF174A7E),
             onTap: () => context.go('/updates'),
+          ),
+
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.share_rounded,
+            title: 'Condivisione Dati',
+            subtitle: 'Condividi dati tra dispositivi via QR',
+            color: Colors.purple,
+            onTap: () => context.go('/data-share'),
           ),
 
           const SizedBox(height: 30),

@@ -22,6 +22,9 @@ import '../features/students/allergies_page.dart';
 import '../features/students/autonomous_exits_page.dart';
 import '../features/phone_verification/verify_number_page.dart';
 import '../features/update/update_page.dart';
+import '../features/data_share/data_share_selection_page.dart';
+import '../features/data_share/data_share_send_page.dart';
+import '../features/data_share/data_share_receive_page.dart';
 
 class _AuthStateNotifier extends ChangeNotifier {
   _AuthStateNotifier(Ref ref) {
@@ -163,6 +166,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     GoRoute(
       path: '/updates',
       builder: (context, state) => const UpdatePage(),
+    ),
+
+    /// DATA SHARE
+    GoRoute(
+      path: '/data-share',
+      builder: (context, state) => const DataShareSelectionPage(),
+    ),
+
+    GoRoute(
+      path: '/data-share/send',
+      builder: (context, state) => const DataShareSendPage(),
+    ),
+
+    GoRoute(
+      path: '/data-share/receive',
+      builder: (context, state) => const DataShareReceivePage(),
     ),
   ],
   );

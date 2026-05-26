@@ -167,8 +167,14 @@ class AttachmentsSection extends ConsumerWidget {
       if (!status.isGranted) {
         throw Exception('Permesso fotocamera negato');
       }
+    } else if (source == ImageSource.gallery) {
+      // Su Android 13+ serve READ_MEDIA_IMAGES, su Android <13 READ_EXTERNAL_STORAGE
+      // Il permission_handler gestisce automaticamente la differenza
+      final status = await Permission.photos.request();
+      if (!status.isGranted) {
+        throw Exception('Permesso galleria negato');
+      }
     }
-
     final picker = ImagePicker();
     final file = await picker.pickImage(
       source: source,

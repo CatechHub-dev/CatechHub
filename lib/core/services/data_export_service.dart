@@ -1,0 +1,277 @@
+import '../storage/local_database.dart';
+import '../../shared/models/student_model.dart';
+import '../../shared/models/class_model.dart';
+import '../../shared/models/planning_meeting.dart';
+import '../../shared/models/attachment_model.dart';
+
+class DataExportService {
+  // Esporta tutti i dati dal database
+  static Map<String, dynamic> exportAllData() {
+    final Map<String, dynamic> allData = {
+      'anagrafica': _exportAnagrafica(),
+      'agenda': _exportAgenda(),
+      'programmazione': _exportProgrammazione(),
+      'documenti': _exportDocumenti(),
+      'allegati': _exportAllegati(),
+    };
+
+    return allData;
+  }
+
+  // Esporta dati selettivi basati su opzioni
+  static Map<String, dynamic> exportSelectiveData(bool includeAnagrafica, bool includeAgenda, bool includeProgrammazione, bool includeDocumenti, bool includeAllegati) {
+    final Map<String, dynamic> selectiveData = {};
+
+    if (includeAnagrafica) {
+      selectiveData['anagrafica'] = _exportAnagrafica();
+    }
+
+    if (includeAgenda) {
+      selectiveData['agenda'] = _exportAgenda();
+    }
+
+    if (includeProgrammazione) {
+      selectiveData['programmazione'] = _exportProgrammazione();
+    }
+
+    if (includeDocumenti) {
+      selectiveData['documenti'] = _exportDocumenti();
+      if (includeAllegati) {
+        selectiveData['allegati'] = _exportAllegati();
+      }
+    }
+
+    return selectiveData;
+  }
+
+  // Esporta anagrafica (studenti e classi)
+  static Map<String, dynamic> _exportAnagrafica() {
+    final students = LocalDatabase.values(
+      LocalDatabase.students(),
+      (id, data) => Student.fromMap(id, data),
+    );
+
+    final classes = LocalDatabase.values(
+      LocalDatabase.classes(),
+      (id, data) => SchoolClass.fromMap(id, data),
+    );
+
+    return {
+      'students': students.map((s) => s.toMap()..['id'] = s.id).toList(),
+      'classes': classes.map((c) => c.toMap()..['id'] = c.id).toList(),
+    };
+  }
+
+  // Esporta agenda (presenze)
+  static Map<String, dynamic> _exportAgenda() {
+    final attendance = LocalDatabase.values(
+      LocalDatabase.attendance(),
+      (id, data) => {'id': id, ...data},
+    );
+
+    return {
+      'attendance': attendance,
+    };
+  }
+
+  // Esporta programmazione (planning)
+  static Map<String, dynamic> _exportProgrammazione() {
+    final planning = LocalDatabase.values(
+      LocalDatabase.planning(),
+      (id, data) => PlanningMeeting.fromMap(id, data),
+    );
+
+    return {
+      'planning': planning.map((p) => p.toMap()..['id'] = p.id).toList(),
+    };
+  }
+
+  // Esporta documenti
+  static Map<String, dynamic> _exportDocumenti() {
+    final documents = LocalDatabase.values(
+      LocalDatabase.documents(),
+      (id, data) => {'id': id, ...data},
+    );
+
+    final deliveries = LocalDatabase.values(
+      LocalDatabase.documentDeliveries(),
+      (id, data) => {'id': id, ...data},
+    );
+
+    return {
+      'documents': documents,
+      'deliveries': deliveries,
+    };
+  }
+
+  // Esporta allegati
+  static Map<String, dynamic> _exportAllegati() {
+    final attachments = LocalDatabase.values(
+      LocalDatabase.attachments(),
+      (id, data) => Attachment.fromMap(id, data),
+    );
+
+    // Nota: I file binari non vengono esportati via QR code per limitazioni di dimensione
+    // Verranno esportati solo i metadati
+    return {
+      'attachments': attachments.map((a) => a.toMap()..['id'] = a.id).toList(),
+      'note': 'I file binari non sono inclusi nella condivisione QR code',
+    };
+  }
+
+  // Importa dati ricevuti sostituendo quelli esistenti
+  static Future<void> importData(Map<String, dynamic> receivedData) async {
+    // Importa anagrafica
+    if (receivedData.containsKey('anagrafica')) {
+      await _importAnagrafica(receivedData['anagrafica']);
+    }
+
+    // Importa agenda
+    if (receivedData.containsKey('agenda')) {
+      await _importAgenda(receivedData['agenda']);
+    }
+
+    // Importa programmazione
+    if (receivedData.containsKey('programmazione')) {
+      await _importProgrammazione(receivedData['programmazione']);
+    }
+
+    // Importa documenti
+    if (receivedData.containsKey('documenti')) {
+      await _importDocumenti(receivedData['documenti']);
+    }
+
+    // Importa allegati (solo metadati)
+    if (receivedData.containsKey('allegati')) {
+      await _importAllegati(receivedData['allegati']);
+    }
+  }
+
+  // Importa anagrafica
+  static Future<void> _importAnagrafica(Map<String, dynamic> anagraficaData) async {
+    final studentsBox = LocalDatabase.students();
+    final classesBox = LocalDatabase.classes();
+
+    // Svuota box esistenti
+    await studentsBox.clear();
+    await classesBox.clear();
+
+    // Importa studenti
+    final students = anagraficaData['students'] as List<dynamic>?;
+    if (students != null) {
+      for (final studentData in students) {
+        final studentMap = studentData as Map<String, dynamic>;
+        final id = studentMap['id'] as String? ?? LocalDatabase.newId('student');
+        await studentsBox.put(id, studentMap);
+      }
+    }
+
+    // Importa classi
+    final classes = anagraficaData['classes'] as List<dynamic>?;
+    if (classes != null) {
+      for (final classData in classes) {
+        final classMap = classData as Map<String, dynamic>;
+        final id = classMap['id'] as String? ?? LocalDatabase.newId('class');
+        await classesBox.put(id, classMap);
+      }
+    }
+  }
+
+  // Importa agenda
+  static Future<void> _importAgenda(Map<String, dynamic> agendaData) async {
+    final attendanceBox = LocalDatabase.attendance();
+
+    // Svuota box esistente
+    await attendanceBox.clear();
+
+    // Importa presenze
+    final attendance = agendaData['attendance'] as List<dynamic>?;
+    if (attendance != null) {
+      for (final attendanceData in attendance) {
+        final attendanceMap = attendanceData as Map<String, dynamic>;
+        final id = attendanceMap['id'] as String? ?? LocalDatabase.newId('attendance');
+        await attendanceBox.put(id, attendanceMap);
+      }
+    }
+  }
+
+  // Importa programmazione
+  static Future<void> _importProgrammazione(Map<String, dynamic> programmazioneData) async {
+    final planningBox = LocalDatabase.planning();
+
+    // Svuota box esistente
+    await planningBox.clear();
+
+    // Importa planning
+    final planning = programmazioneData['planning'] as List<dynamic>?;
+    if (planning != null) {
+      for (final planningData in planning) {
+        final planningMap = planningData as Map<String, dynamic>;
+        final id = planningMap['id'] as String? ?? LocalDatabase.newId('planning');
+        await planningBox.put(id, planningMap);
+      }
+    }
+  }
+
+  // Importa documenti
+  static Future<void> _importDocumenti(Map<String, dynamic> documentiData) async {
+    final documentsBox = LocalDatabase.documents();
+    final deliveriesBox = LocalDatabase.documentDeliveries();
+
+    // Svuota box esistenti
+    await documentsBox.clear();
+    await deliveriesBox.clear();
+
+    // Importa documenti
+    final documents = documentiData['documents'] as List<dynamic>?;
+    if (documents != null) {
+      for (final documentData in documents) {
+        final documentMap = documentData as Map<String, dynamic>;
+        final id = documentMap['id'] as String? ?? LocalDatabase.newId('document');
+        await documentsBox.put(id, documentMap);
+      }
+    }
+
+    // Importa consegne
+    final deliveries = documentiData['deliveries'] as List<dynamic>?;
+    if (deliveries != null) {
+      for (final deliveryData in deliveries) {
+        final deliveryMap = deliveryData as Map<String, dynamic>;
+        final id = deliveryMap['id'] as String? ?? LocalDatabase.newId('delivery');
+        await deliveriesBox.put(id, deliveryMap);
+      }
+    }
+  }
+
+  // Importa allegati
+  static Future<void> _importAllegati(Map<String, dynamic> allegatiData) async {
+    final attachmentsBox = LocalDatabase.attachments();
+
+    // Svuota box esistente
+    await attachmentsBox.clear();
+
+    // Importa allegati (solo metadati)
+    final attachments = allegatiData['attachments'] as List<dynamic>?;
+    if (attachments != null) {
+      for (final attachmentData in attachments) {
+        final attachmentMap = attachmentData as Map<String, dynamic>;
+        final id = attachmentMap['id'] as String? ?? LocalDatabase.newId('attachment');
+        await attachmentsBox.put(id, attachmentMap);
+      }
+    }
+  }
+
+  // Verifica integrità dei dati ricevuti
+  static bool verifyDataIntegrity(Map<String, dynamic> receivedData) {
+    // Verifica che i campi obbligatori siano presenti
+    final requiredFields = ['anagrafica', 'agenda', 'programmazione', 'documenti'];
+    
+    for (final field in requiredFields) {
+      if (!receivedData.containsKey(field)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}

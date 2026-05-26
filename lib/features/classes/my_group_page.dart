@@ -11,6 +11,7 @@ import '../classes/classes_provider.dart';
 import '../meetings/attendance_repository.dart';
 import '../students/students_provider.dart';
 import 'attendance_print_page.dart';
+import '../students/student_quick_view_page.dart' hide studentsRepoProvider;
 
 /// Modello di supporto locale che unisce lo studente alle sue statistiche e assenze consecutive
 class _StudentWithStats {
@@ -404,90 +405,99 @@ class _StudentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasWarning = consecutiveAbsences >= 2;
 
-    return Container(
-      padding: EdgeInsets.all(compact ? 10 : 14),
-      decoration: BoxDecoration(
-        color: hasWarning ? Colors.red.shade50 : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: hasWarning
-            ? Border.all(color: Colors.red.shade200, width: 1)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => StudentQuickViewPage(student: student),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: compact ? 16 : 20,
-            backgroundColor: hasWarning
-                ? Colors.red.shade100
-                : Colors.blue.shade50,
-            child: Icon(
-              Icons.person,
-              color: hasWarning ? Colors.red.shade900 : const Color(0xFF174A7E),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(compact ? 10 : 14),
+        decoration: BoxDecoration(
+          color: hasWarning ? Colors.red.shade50 : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: hasWarning
+              ? Border.all(color: Colors.red.shade200, width: 1)
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: compact ? 16 : 20,
+              backgroundColor: hasWarning
+                  ? Colors.red.shade100
+                  : Colors.blue.shade50,
+              child: Icon(
+                Icons.person,
+                color: hasWarning ? Colors.red.shade900 : const Color(0xFF174A7E),
+              ),
+            ),
 
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${student.surname} ${student.name}',
+                    style: TextStyle(
+                      fontSize: compact ? 13 : 15,
+                      fontWeight: FontWeight.w600,
+                      color: hasWarning ? Colors.red.shade900 : Colors.black87,
+                    ),
+                  ),
+                  if (hasWarning)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '$consecutiveAbsences assenze di fila!',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${student.name} ${student.surname}',
-                  style: TextStyle(
-                    fontSize: compact ? 13 : 15,
-                    fontWeight: FontWeight.w600,
-                    color: hasWarning ? Colors.red.shade900 : Colors.black87,
+                  '$present',
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (hasWarning)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      '$consecutiveAbsences assenze di fila!',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                const SizedBox(width: 10),
+                Text(
+                  '$absent',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
               ],
             ),
-          ),
-
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$present',
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '$absent',
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      ));
   }
 }

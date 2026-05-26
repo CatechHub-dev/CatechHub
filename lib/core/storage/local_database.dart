@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,6 +13,7 @@ class LocalDatabase {
   static const attendanceBox = 'attendance_box';
   static const documentsBox = 'documents_box';
   static const documentDeliveriesBox = 'document_deliveries_box';
+  static const attachmentsBox = 'attachments_box';
 
   static const _secureStorage = FlutterSecureStorage();
   static const _encryptionKeyName = 'secure_database_key';
@@ -44,7 +46,11 @@ class LocalDatabase {
       Hive.openBox<Map>(attendanceBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(documentsBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(documentDeliveriesBox, encryptionCipher: _cipher),
+      Hive.openBox<Map>(attachmentsBox, encryptionCipher: _cipher),
     ]);
+
+    // La sessione non va persistita: rimuove eventuali flag legacy.
+    await Hive.box(authBox).delete('isLoggedIn');
 
     _initialized = true;
   }
@@ -56,6 +62,19 @@ class LocalDatabase {
   static Box<Map> attendance() => Hive.box<Map>(attendanceBox);
   static Box<Map> documents() => Hive.box<Map>(documentsBox);
   static Box<Map> documentDeliveries() => Hive.box<Map>(documentDeliveriesBox);
+  static Box<Map> attachments() => Hive.box<Map>(attachmentsBox);
+
+  static Uint8List encryptBytes(Uint8List plain) {
+    final out = Uint8List(_cipher.maxEncryptedSize(plain));
+    final len = _cipher.encrypt(plain, 0, plain.length, out, 0);
+    return Uint8List.sublistView(out, 0, len);
+  }
+
+  static Uint8List decryptBytes(Uint8List encrypted) {
+    final out = Uint8List(encrypted.length);
+    final len = _cipher.decrypt(encrypted, 0, encrypted.length, out, 0);
+    return Uint8List.sublistView(out, 0, len);
+  }
 
   static String newId([String prefix = 'local']) {
     return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';

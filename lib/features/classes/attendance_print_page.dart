@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../shared/models/class_model.dart';
+import '../../shared/models/student_model.dart';
 import '../meetings/attendance_repository.dart';
 import '../planning/planning_repository.dart';
 import '../students/students_repository.dart';
@@ -126,7 +127,7 @@ class _AttendancePrintPageState extends ConsumerState<AttendancePrintPage> {
           .getAllStudentsSync()
           .where((s) => widget.schoolClass.studentIds.contains(s.id))
           .toList()
-        ..sort((a, b) => '${a.name} ${a.surname}'.compareTo('${b.name} ${b.surname}'));
+        ..sort(Student.compareBySurname);
 
       final allAttendance =
           ref.read(attendanceRepositoryProvider).getAttendanceSync();
@@ -134,7 +135,7 @@ class _AttendancePrintPageState extends ConsumerState<AttendancePrintPage> {
       final allMeetings = ref
           .read(planningRepositoryProvider)
           .getMeetingsSync()
-          .where((m) => m.classId == widget.schoolClass.id)
+          .where((m) => m.classId == widget.schoolClass.id && !m.isReunion)
           .toList()
         ..sort((a, b) => a.date.compareTo(b.date));
 

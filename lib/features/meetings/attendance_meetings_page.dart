@@ -56,7 +56,7 @@ class AttendanceMeetingsPage extends ConsumerWidget {
               }
 
               final meetings = meetingsSnapshot.data!
-                  .where((m) => m.classId == classId)
+                  .where((m) => m.classId == classId && !m.isReunion)
                   .toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
 

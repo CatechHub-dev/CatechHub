@@ -2,20 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/storage/local_database.dart';
+import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/planning_meeting.dart';
+import '../attachments/widgets/attachments_section.dart';
 import '../classes/classes_provider.dart';
 import 'planning_provider.dart';
 
 class PlanningEditPage extends ConsumerStatefulWidget {
   final PlanningMeeting? existing;
 
-  const PlanningEditPage({super.key, this.existing});
+  /// Nuovo incontro: `false` = giornata con appello, `true` = riunione senza appello.
+  final bool isReunion;
+
+  const PlanningEditPage({
+    super.key,
+    this.existing,
+    this.isReunion = false,
+  });
 
   @override
   ConsumerState<PlanningEditPage> createState() => _PlanningEditPageState();
 }
 
 class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
+  late final String meetingId;
+  late final bool isReunion;
+
   DateTime? selectedDate;
 
   final title = TextEditingController();
@@ -25,6 +38,8 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
   @override
   void initState() {
     super.initState();
+    meetingId = widget.existing?.id ?? LocalDatabase.newId('meeting');
+    isReunion = widget.existing?.isReunion ?? widget.isReunion;
 
     final meeting = widget.existing;
     if (meeting != null) {
@@ -55,7 +70,7 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
         backgroundColor: const Color(0xFF174A7E),
         foregroundColor: Colors.white,
         title: Text(
-          widget.existing == null ? 'Nuova giornata' : 'Modifica giornata',
+          _pageTitle(),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -77,6 +92,35 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
+                if (isReunion)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.deepPurple.shade100),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.groups_rounded,
+                          color: Colors.deepPurple.shade700,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Riunione: non compare nell\'appello presenze.',
+                            style: TextStyle(
+                              color: Colors.deepPurple.shade900,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 _DatePickerCard(
                   selectedDate: selectedDate,
                   onTap: () async {
@@ -108,8 +152,8 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
                   child: TextField(
                     controller: title,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      hintText: 'Titolo giornata',
+                    decoration: InputDecoration(
+                      hintText: isReunion ? 'Titolo riunione' : 'Titolo giornata',
                       border: InputBorder.none,
                     ),
                   ),
@@ -140,6 +184,12 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                AttachmentsSection(
+                  parentId: meetingId,
+                  parentType: AttachmentParentType.meeting,
+                  title: 'Foto e PDF dell\'incontro',
+                ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -153,9 +203,9 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
                       ),
                     ),
                     icon: const Icon(Icons.save_rounded),
-                    label: const Text(
-                      'Salva giornata',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    label: Text(
+                      isReunion ? 'Salva riunione' : 'Salva giornata',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     onPressed: () async {
                       if (selectedDate == null) {
@@ -167,21 +217,26 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
 
                       if (title.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Inserisci un titolo per la giornata'),
+                          SnackBar(
+                            content: Text(
+                              isReunion
+                                  ? 'Inserisci un titolo per la riunione'
+                                  : 'Inserisci un titolo per la giornata',
+                            ),
                           ),
                         );
                         return;
                       }
 
                       final meeting = PlanningMeeting(
-                        id: widget.existing?.id ?? '',
+                        id: meetingId,
                         classId: classId,
                         createdBy: AuthService.localUserId,
                         date: selectedDate!,
                         title: title.text.trim(),
                         activity: activity.text.trim(),
                         notes: notes.text.trim(),
+                        isReunion: isReunion,
                       );
 
                       try {
@@ -212,6 +267,13 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
         error: (e, _) => Center(child: Text('Errore: $e')),
       ),
     );
+  }
+
+  String _pageTitle() {
+    if (widget.existing != null) {
+      return isReunion ? 'Modifica riunione' : 'Modifica giornata';
+    }
+    return isReunion ? 'Nuova riunione' : 'Nuova giornata';
   }
 }
 

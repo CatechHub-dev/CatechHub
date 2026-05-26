@@ -11,11 +11,9 @@ class AllergiesPage extends StatelessWidget {
     final repo = StudentsRepository();
     final allStudents = repo.getAllStudentsSync();
 
-    final studentsWithAllergies = allStudents
-        .where((s) => s.allergies != null && s.allergies!.isNotEmpty)
-        .toList();
-
-    studentsWithAllergies.sort((a, b) => a.surname.compareTo(b.surname));
+    final studentsWithAllergies = Student.sortedBySurname(
+      allStudents.where((s) => s.allergies != null && s.allergies!.isNotEmpty),
+    );
 
     return AppScaffold(
       title: 'Allergie',

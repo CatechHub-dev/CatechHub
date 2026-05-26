@@ -32,17 +32,10 @@ class PlanningPage extends ConsumerWidget {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
         label: const Text(
-          'Nuova giornata',
+          'Aggiungi',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const PlanningEditPage(),
-            ),
-          );
-        },
+        onPressed: () => _showAddMenu(context),
       ),
 
       ///
@@ -104,6 +97,9 @@ class PlanningPage extends ConsumerWidget {
                     const SizedBox(height: 14),
                 itemBuilder: (_, i) {
                   final m = meetings[i];
+                  final isReunion = m.isReunion;
+                  final accentColor =
+                      isReunion ? Colors.deepPurple : const Color(0xFF174A7E);
 
                   final formattedDate =
                       DateFormat('dd MMMM yyyy', 'it_IT')
@@ -164,7 +160,7 @@ class PlanningPage extends ConsumerWidget {
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF174A7E),
+                              color: accentColor,
                               borderRadius:
                                   BorderRadius.circular(20),
                             ),
@@ -203,16 +199,42 @@ class PlanningPage extends ConsumerWidget {
                               crossAxisAlignment:
                                   CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  m.title,
-                                  style: theme
-                                      .textTheme.titleMedium
-                                      ?.copyWith(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                    color:
-                                        const Color(0xFF174A7E),
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        m.title,
+                                        style: theme
+                                            .textTheme.titleMedium
+                                            ?.copyWith(
+                                          fontWeight:
+                                              FontWeight.bold,
+                                          color: accentColor,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isReunion)
+                                      Container(
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepPurple.shade50,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'Riunione',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.deepPurple.shade800,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
 
                                 const SizedBox(height: 6),
@@ -401,6 +423,56 @@ class PlanningPage extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.event_rounded,
+                color: Color(0xFF174A7E),
+              ),
+              title: const Text('Nuova giornata'),
+              subtitle: const Text('Con appello presenze dei ragazzi'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PlanningEditPage(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.groups_rounded,
+                color: Colors.deepPurple.shade700,
+              ),
+              title: const Text('Nuova riunione'),
+              subtitle: const Text('Solo programmazione, senza appello'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PlanningEditPage(isReunion: true),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

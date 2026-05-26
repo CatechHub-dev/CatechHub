@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wiredash/wiredash.dart'; // <-- Importazione di Wiredash
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/security/privacy_settings.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -13,7 +14,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(authStateProvider).valueOrNull ?? {};
 
-    final canManageCatechists = data['canManageCatechists'] == true;
+    final privacy = ref.watch(privacySettingsProvider);
 
     return AppScaffold(
       title: 'Impostazioni',
@@ -61,8 +62,25 @@ class SettingsPage extends ConsumerWidget {
             subtitle: 'Segnala un problema o suggerisci un’idea',
             color: Colors.orange,
             onTap: () {
-              // Apre la finestra di dialogo nativa e interattiva di Wiredash
-              Wiredash.of(context).show(inheritMaterialTheme: true);
+              if (!privacy.allowRemoteFeedback) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Abilita "Feedback remoto" in Privacy e sicurezza',
+                    ),
+                  ),
+                );
+                return;
+              }
+              try {
+                Wiredash.of(context).show(inheritMaterialTheme: true);
+              } catch (_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Feedback non configurato in questa build'),
+                  ),
+                );
+              }
             },
           ),
 
@@ -83,6 +101,17 @@ class SettingsPage extends ConsumerWidget {
             onTap: () {
               context.go('/privacy-security');
             },
+          ),
+
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.delete_forever_rounded,
+            title: 'Cancella dati salvati',
+            subtitle: 'Elimina anagrafica, presenze, giornate o allegati',
+            color: Colors.red,
+            isDestructive: true,
+            onTap: () => context.go('/delete-data'),
           ),
 
           const SizedBox(height: 30),

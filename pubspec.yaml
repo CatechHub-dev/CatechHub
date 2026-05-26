@@ -2,7 +2,7 @@ name: CatechHub
 description: "Il tuo registro di catechismo"
 publish_to: 'none'
 
-version: 1.0.1+1
+version: 1.1.0+1
 
 environment:
   sdk: ^3.12.0
@@ -21,14 +21,10 @@ dependencies:
   flutter_secure_storage: ^10.2.0 # Serve per salvare la chiave di cifratura in modo sicuro nel portachiavi del telefono
   crypto: ^3.0.0 # Per hashing sicuro del PIN con SHA256 + salt
 
-  # Scambio Dati e Condivisione (Nuovi)
-  share_plus: ^13.1.0   # Permette di inviare il file di backup a un altro telefono tramite qualsiasi app
-  file_picker: ^12.0.0-beta.4  # Permette all'altro telefono di selezionare il file ricevuto per importarlo
+  # Scambio Dati (backup futuro)
+  file_picker: ^12.0.0-beta.4
 
-  # UI, Font e Utility (Mantenuti)
-  google_fonts: ^8.1.0
-  responsive_framework: ^1.5.1
-  flutter_animate: ^4.5.2
+  # UI e Utility
   intl: ^0.20.2
   url_launcher: ^6.3.0
   http: ^1.2.0
@@ -41,9 +37,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   collection: ^1.18.0
   wiredash: ^2.6.1
-  flutter_dotenv: ^6.0.1
-  image_picker: ^1.1.0 # Scattare/selezionare foto e video
+  image_picker: ^1.1.0
   path_provider: ^2.1.0 # Accedere app documents directory
+  image: ^4.8.0
 
 dev_dependencies:
   flutter_test:
@@ -63,4 +59,3 @@ flutter:
 
   assets:
     - assets/images/logo.png
-    - .env

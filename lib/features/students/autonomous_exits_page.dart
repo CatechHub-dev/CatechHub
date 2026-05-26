@@ -11,24 +11,25 @@ class AutonomousExitsPage extends StatelessWidget {
     final repo = StudentsRepository();
     final allStudents = repo.getAllStudentsSync();
 
-    final autonomousStudents = allStudents
-        .where((s) =>
+    final autonomousStudents = Student.sortedBySurname(
+      allStudents.where(
+        (s) =>
             s.autonomousExits == null ||
             s.autonomousExits!.isEmpty ||
             s.autonomousExits!.toLowerCase().contains('autorizzato') ||
-            s.autonomousExits!.toLowerCase().contains('si'))
-        .toList();
+            s.autonomousExits!.toLowerCase().contains('si'),
+      ),
+    );
 
-    final nonAutonomousStudents = allStudents
-        .where((s) =>
+    final nonAutonomousStudents = Student.sortedBySurname(
+      allStudents.where(
+        (s) =>
             s.autonomousExits != null &&
             s.autonomousExits!.isNotEmpty &&
             !s.autonomousExits!.toLowerCase().contains('autorizzato') &&
-            !s.autonomousExits!.toLowerCase().contains('si'))
-        .toList();
-
-    autonomousStudents.sort((a, b) => a.surname.compareTo(b.surname));
-    nonAutonomousStudents.sort((a, b) => a.surname.compareTo(b.surname));
+            !s.autonomousExits!.toLowerCase().contains('si'),
+      ),
+    );
 
     return AppScaffold(
       title: 'Uscite Autonome',

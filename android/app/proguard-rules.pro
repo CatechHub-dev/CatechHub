@@ -22,10 +22,9 @@
 ########################################
 # HIVE (DATABASE LOCALE)
 ########################################
--keep class * extends io.hive.** { *; }
--keep class * extends io.isar.hive.** { *; }
--keep class *Adapter { *; }
--keep class io.invertase.firebase.** { *; }
+-keep class hive.** { *; }
+-keep class * extends hive.HiveObject { *; }
+-dontwarn hive.**
 
 ########################################
 # SECURE STORAGE

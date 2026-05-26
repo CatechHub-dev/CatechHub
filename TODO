@@ -1,10 +1,18 @@
 ---- FIRST STABLE RELEASE - v1.0.0 ----
 
-integra blocco automatico a chiusura dell'applicazione, anche mediante killing da drawer
+integra blocco automatico a chiusura dell'applicazione, anche mediante killing da drawer - OK!
 
-Integra cancellazione parziale o totale del database
+Integra cancellazione parziale o totale del database - OK!
 
-Ottimizza codice
+Ottimizza codice - OK!
+
+Integra salvataggio foto e pdf per ragazzo, per evento - v1.1.0 (5) - OK!
+
+Integra gestione riunioni (no appello) - v1.1.0 (10) - OK!
+
+Integra code obfuscation
+
+Integra verifica numeri
 
 mio gruppo *codex - v1.2.0 (4)
     -aggiungi visualizzazione rapida:
@@ -16,15 +24,11 @@ mio gruppo *codex - v1.2.0 (4)
         - allegati
         - assenze
 
-Integra salvataggio foto e pdf per ragazzo, per evento - v1.1.0 (5)
-
-Integra gestione riunioni (no appello) - v1.1.0 (10)
-
 Integra condivisione cifrata via qr - v1.3.0 (5) *codex 
 
-Integra salvataggio di file di backup - v1.4.0 (7) *codex
+Integra pagina di aggiornamento
 
-Integra code obfuscation
+Integra salvataggio di file di backup - v1.4.0 (7) *codex
 
 Inserisci manuale utente
 

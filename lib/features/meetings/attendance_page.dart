@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../shared/models/class_model.dart';
+import '../../shared/models/planning_meeting.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../classes/classes_provider.dart';
 import '../students/students_provider.dart';
@@ -48,7 +49,14 @@ final _studentsWithHistoryProvider =
       });
     }
 
-    return students.map((student) {
+    final sorted = [...students]..sort((a, b) {
+      final bySurname =
+          a.surname.toLowerCase().compareTo(b.surname.toLowerCase());
+      if (bySurname != 0) return bySurname;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
+    return sorted.map((student) {
       final history = studentHistory[student.id] ?? [];
       final hasTwoConsecutiveAbsences =
           history.length >= 2 && history[0] == 'Assente' && history[1] == 'Assente';
@@ -108,6 +116,27 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final meeting = widget.meeting;
+    if (meeting is PlanningMeeting && meeting.isReunion) {
+      return AppScaffold(
+        title: 'Appello presenze',
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Le riunioni non prevedono l\'appello dei ragazzi.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final classesAsync = ref.watch(classesStreamProvider);
     final studentsWithHistoryAsync =
         ref.watch(_studentsWithHistoryProvider(widget.meeting?.id ?? ''));
@@ -146,8 +175,15 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Errore nel caricamento studenti: $e')),
             data: (allStudents) {
-              final students =
-                  allStudents.where((s) => myClass.studentIds.contains(s.id)).toList();
+              final students = allStudents
+                  .where((s) => myClass.studentIds.contains(s.id))
+                  .toList()
+                ..sort((a, b) {
+                  final bySurname =
+                      a.surname.toLowerCase().compareTo(b.surname.toLowerCase());
+                  if (bySurname != 0) return bySurname;
+                  return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                });
 
               if (students.isEmpty) {
                 return const Center(

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/student_model.dart';
+import '../attachments/widgets/attachments_section.dart';
 import 'students_repository.dart';
 
 final studentsRepoProvider = Provider((ref) => StudentsRepository());
@@ -129,8 +131,8 @@ class _EditStudentPageState extends ConsumerState<EditStudentPage> {
             _Section(
               title: 'Dati ragazzo',
               children: [
-                _Field(name, 'Nome', enabled: editMode),
-                _Field(surname, 'Cognome', enabled: editMode),
+                _Field(name, 'Nome', enabled: editMode, capitalizeWords: true),
+                _Field(surname, 'Cognome', enabled: editMode, capitalizeWords: true),
               ],
             ),
 
@@ -233,6 +235,13 @@ class _EditStudentPageState extends ConsumerState<EditStudentPage> {
               children: [
                 _Field(notes, 'Note', maxLines: 5, enabled: editMode),
               ],
+            ),
+
+            const SizedBox(height: 16),
+
+            AttachmentsSection(
+              parentId: widget.student.id,
+              parentType: AttachmentParentType.student,
             ),
 
             const SizedBox(height: 20),
@@ -596,12 +605,14 @@ class _ParentCard extends StatelessWidget {
         TextField(
           controller: name,
           enabled: editMode,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Nome'),
         ),
 
         TextField(
           controller: surname,
           enabled: editMode,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Cognome'),
         ),
 
@@ -638,12 +649,14 @@ class _Field extends StatelessWidget {
   final String label;
   final bool enabled;
   final int maxLines;
+  final bool capitalizeWords;
 
   const _Field(
     this.controller,
     this.label, {
     this.enabled = true,
     this.maxLines = 1,
+    this.capitalizeWords = false,
   });
 
   @override
@@ -652,6 +665,9 @@ class _Field extends StatelessWidget {
       controller: controller,
       enabled: enabled,
       maxLines: maxLines,
+      textCapitalization: capitalizeWords
+          ? TextCapitalization.words
+          : TextCapitalization.none,
       decoration: InputDecoration(labelText: label),
     );
   }

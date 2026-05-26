@@ -86,8 +86,8 @@ class _AddStudentPageState extends ConsumerState<AddStudentPage> {
             _Section(
               title: 'Dati ragazzo',
               children: [
-                _Field(name, 'Nome'),
-                _Field(surname, 'Cognome'),
+                _Field(name, 'Nome', capitalizeWords: true),
+                _Field(surname, 'Cognome', capitalizeWords: true),
 
                 const SizedBox(height: 10),
 
@@ -411,8 +411,8 @@ class _ParentCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _Field(name, 'Nome'),
-          _Field(surname, 'Cognome'),
+          _Field(name, 'Nome', capitalizeWords: true),
+          _Field(surname, 'Cognome', capitalizeWords: true),
           _Field(phone, 'Telefono'),
         ],
       ),
@@ -427,8 +427,14 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final int maxLines;
+  final bool capitalizeWords;
 
-  const _Field(this.controller, this.label, {this.maxLines = 1});
+  const _Field(
+    this.controller,
+    this.label, {
+    this.maxLines = 1,
+    this.capitalizeWords = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -437,6 +443,9 @@ class _Field extends StatelessWidget {
       child: TextField(
         controller: controller,
         maxLines: maxLines,
+        textCapitalization: capitalizeWords
+            ? TextCapitalization.words
+            : TextCapitalization.none,
         decoration: InputDecoration(
           labelText: label,
           filled: true,

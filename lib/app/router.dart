@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_provider.dart';
-import '../core/storage/local_database.dart';
 import '../features/auth/login_page.dart';
 import '../features/classes/my_group_page.dart';
 import '../features/classes/group_management_page.dart';
@@ -17,6 +16,7 @@ import '../features/planning/planning_page.dart';
 import '../features/documents/documents_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/settings/privacy.dart';
+import '../features/settings/delete_data_page.dart';
 import '../features/documents/document_detail_page.dart';
 import '../features/students/allergies_page.dart';
 import '../features/students/autonomous_exits_page.dart';
@@ -36,13 +36,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
-      final box = LocalDatabase.auth();
-      final isLoggedLocally = box.get('isLoggedIn', defaultValue: false);
+      final authState = ref.read(authStateProvider);
       final isLoginPath = state.matchedLocation == '/login';
 
-      if (!isLoggedLocally && !isLoginPath) return '/login';
-      if (isLoggedLocally && isLoginPath) return '/';
-      return null;
+      return authState.when(
+        loading: () => null,
+        error: (_, __) => isLoginPath ? null : '/login',
+        data: (user) {
+          if (user == null && !isLoginPath) return '/login';
+          if (user != null && isLoginPath) return '/';
+          return null;
+        },
+      );
     },
     routes: [
     /// AUTH (Schermata di sblocco locale)
@@ -115,6 +120,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     GoRoute(
       path: '/privacy-security',
       builder: (context, state) => const PrivacySecurityPage(),
+    ),
+
+    GoRoute(
+      path: '/delete-data',
+      builder: (context, state) => const DeleteDataPage(),
     ),
 
     /// MY GROUP

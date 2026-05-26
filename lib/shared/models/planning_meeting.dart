@@ -7,6 +7,9 @@ class PlanningMeeting {
   final String activity;
   final String notes;
 
+  /// Riunione di catechisti: in programmazione ma senza appello presenze.
+  final bool isReunion;
+
   PlanningMeeting({
     required this.id,
     required this.classId,
@@ -15,6 +18,7 @@ class PlanningMeeting {
     required this.title,
     required this.activity,
     required this.notes,
+    this.isReunion = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +29,7 @@ class PlanningMeeting {
       'title': title,
       'activity': activity,
       'notes': notes,
+      'isReunion': isReunion,
     };
   }
 
@@ -42,6 +47,7 @@ class PlanningMeeting {
           : legacyTitle,
       activity: data['activity'] ?? '',
       notes: data['notes'] ?? data['publicNotes'] ?? '',
+      isReunion: data['isReunion'] == true,
     );
   }
 }

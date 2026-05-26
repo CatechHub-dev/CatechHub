@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:local_auth/local_auth.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../storage/local_database.dart';
 
@@ -14,9 +13,12 @@ class AuthService {
   final _localAuth = LocalAuthentication();
   Map<String, dynamic>? _cachedUser;
 
+  /// Sessione attiva solo in memoria: alla chiusura/kill del processo serve di nuovo il PIN.
+  bool _sessionUnlocked = false;
+
   bool get isPinConfigured => _box.containsKey('local_pin_hash');
 
-  bool get isUnlocked => _box.get('isLoggedIn', defaultValue: false);
+  bool get isUnlocked => _sessionUnlocked;
 
   bool get hasProfileData {
     return _box.containsKey('first_name') &&
@@ -56,8 +58,7 @@ class AuthService {
         await _box.put('last_name', lastName.trim());
         await _box.put('group_name', groupName.trim());
         await _box.put('local_user_name', '$firstName $lastName'.trim());
-        await _box.put('isLoggedIn', true);
-
+        _sessionUnlocked = true;
         _cachedUser = null;
         return true;
       }).timeout(
@@ -87,7 +88,7 @@ class AuthService {
         final computedHash = _hashPin(inputPin, salt);
 
         if (computedHash == savedHash) {
-          await _box.put('isLoggedIn', true);
+          _sessionUnlocked = true;
           _cachedUser = null;
           return true;
         }
@@ -153,7 +154,7 @@ class AuthService {
         return false;
       }
 
-      await _box.put('isLoggedIn', true);
+      _sessionUnlocked = true;
       _cachedUser = null;
 
       debugPrint('Autenticazione biometrica riuscita');
@@ -165,7 +166,7 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _box.put('isLoggedIn', false);
+    _sessionUnlocked = false;
     _cachedUser = null;
   }
 

@@ -62,6 +62,17 @@ class Student {
     );
   }
 
+  /// Ordine alfabetico A→Z per cognome, poi nome.
+  static int compareBySurname(Student a, Student b) {
+    final bySurname = a.surname.toLowerCase().compareTo(b.surname.toLowerCase());
+    if (bySurname != 0) return bySurname;
+    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+  }
+
+  static List<Student> sortedBySurname(Iterable<Student> students) {
+    return students.toList()..sort(compareBySurname);
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'name': name,

@@ -38,6 +38,10 @@ android {
         
         // AGGIUNTO: Previene errori sul limite dei metodi (consigliato con il desugaring)
         multiDexEnabled = true
+
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
     }
 
     signingConfigs {
@@ -57,7 +61,22 @@ android {
             signingConfig = signingConfigs.getByName("sharedConfig")
             isMinifyEnabled = false
             isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+    }
 
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+            )
         }
     }
 

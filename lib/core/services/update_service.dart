@@ -1,16 +1,23 @@
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
+
+// GlobalKey per la navigazione dalle notifiche
+// Deve essere inizializzata in main.dart
+GlobalKey<NavigatorState>? navigatorKey;
 
 /// Controllo opzionale aggiornamenti da GitHub (disattivato di default per privacy).
 class UpdateService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
+  // Metodo per impostare la navigatorKey
+  static void setNavigatorKey(GlobalKey<NavigatorState> key) {
+    navigatorKey = key;
+  }
 
   static Future<void> initNotifications() async {
     const androidSettings =
@@ -20,19 +27,19 @@ class UpdateService {
     await _notificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (response) async {
+        // Apri la pagina di aggiornamento
         final payload = response.payload;
-        if (payload == null) return;
-        final url = Uri.tryParse(payload);
-        if (url != null && await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+        if (payload == 'update_available' && navigatorKey != null) {
+          final context = navigatorKey!.currentContext;
+          if (context != null) {
+            GoRouter.of(context).go('/updates');
+          }
         }
       },
     );
   }
 
   static Future<void> checkForUpdates() async {
-    if (!await Permission.notification.request().isGranted) return;
-
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
@@ -48,17 +55,20 @@ class UpdateService {
       final data = json.decode(response.body) as Map<String, dynamic>;
       final latestVersion =
           (data['tag_name'] as String).replaceAll('v', '');
-      final downloadUrl = data['html_url'] as String;
 
       if (_isVersionNewer(currentVersion, latestVersion)) {
-        await _showUpdateNotification(latestVersion, downloadUrl);
+        await _showUpdateNotification(latestVersion);
       }
     } catch (e) {
-      debugPrint('Errore controllo aggiornamenti: $e');
+      print('Errore controllo aggiornamenti: $e');
     }
   }
 
   static bool _isVersionNewer(String current, String latest) {
+    return isVersionNewerStatic(current, latest);
+  }
+
+  static bool isVersionNewerStatic(String current, String latest) {
     final currentParts = current.split('.').map(int.parse).toList();
     final latestParts = latest.split('.').map(int.parse).toList();
 
@@ -70,10 +80,7 @@ class UpdateService {
     return false;
   }
 
-  static Future<void> _showUpdateNotification(
-    String version,
-    String url,
-  ) async {
+  static Future<void> _showUpdateNotification(String version) async {
     const androidDetails = AndroidNotificationDetails(
       'update_channel_id',
       'Aggiornamenti App',
@@ -90,7 +97,7 @@ class UpdateService {
       'Aggiornamento disponibile',
       'Versione $version. Tocca per maggiori informazioni.',
       platformDetails,
-      payload: url,
+      payload: 'update_available', // Payload per aprire la pagina
     );
   }
 }

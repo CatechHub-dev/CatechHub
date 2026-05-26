@@ -20,9 +20,9 @@ class PrivacySettings {
 
   static const defaults = PrivacySettings(
     lockOnBackground: true,
-    blockScreenshots: false,
-    checkUpdatesOnStart: false,
-    allowRemoteFeedback: false,
+    blockScreenshots: true,
+    checkUpdatesOnStart: true,
+    allowRemoteFeedback: true,
   );
 }
 
@@ -39,11 +39,11 @@ class PrivacySettingsNotifier extends StateNotifier<PrivacySettings> {
     return PrivacySettings(
       lockOnBackground: box.get('privacy_lock_on_background', defaultValue: true),
       blockScreenshots:
-          box.get('privacy_block_screenshots', defaultValue: false),
+          box.get('privacy_block_screenshots', defaultValue: true),
       checkUpdatesOnStart:
-          box.get('privacy_check_updates', defaultValue: false),
+          box.get('privacy_check_updates', defaultValue: true),
       allowRemoteFeedback:
-          box.get('privacy_allow_feedback', defaultValue: false),
+          box.get('privacy_allow_feedback', defaultValue: true),
     );
   }
 

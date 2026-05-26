@@ -4,7 +4,9 @@ import 'package:collection/collection.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/storage/local_database.dart';
+import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/student_model.dart';
+import '../attachments/widgets/attachments_section.dart';
 import 'students_repository.dart';
 import '../classes/classes_provider.dart';
 import '../classes/classes_repository.dart';
@@ -39,6 +41,7 @@ class _AddStudentPageState extends ConsumerState<AddStudentPage> {
   DateTime? birthDate;
   Set<String> selectedExits = {};
   String? customExitName;
+  String? tempStudentId = LocalDatabase.newId('student');
 
   bool get isDesktop =>
       MediaQuery.of(context).size.width > 900;
@@ -196,6 +199,17 @@ class _AddStudentPageState extends ConsumerState<AddStudentPage> {
               ],
             ),
 
+            const SizedBox(height: 16),
+
+            /// =========================
+            /// ALLEGATI
+            /// =========================
+            if (tempStudentId != null)
+              AttachmentsSection(
+                parentId: tempStudentId!,
+                parentType: AttachmentParentType.student,
+              ),
+
             const SizedBox(height: 30),
 
             /// =========================
@@ -221,7 +235,9 @@ class _AddStudentPageState extends ConsumerState<AddStudentPage> {
                     return;
                   }
 
-                  final studentId = LocalDatabase.newId('student');
+                  // Genera ID temporaneo se non esiste
+                  tempStudentId ??= LocalDatabase.newId('student');
+                  final studentId = tempStudentId!;
 
                   String? autonomousExits;
                   if (selectedExits.isNotEmpty) {

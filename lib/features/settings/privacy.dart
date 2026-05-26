@@ -89,33 +89,6 @@ class PrivacySecurityPage extends ConsumerWidget {
             onChanged: privacyNotifier.setLockOnBackground,
           ),
           const SizedBox(height: 10),
-          _ToggleCard(
-            title: 'Blocca screenshot e registrazione',
-            subtitle:
-                'Impedisce catture schermo mentre l\'app è aperta (Android)',
-            icon: Icons.screenshot_monitor_rounded,
-            value: privacy.blockScreenshots,
-            onChanged: privacyNotifier.setBlockScreenshots,
-          ),
-          const SizedBox(height: 10),
-          _ToggleCard(
-            title: 'Verifica aggiornamenti all\'avvio',
-            subtitle:
-                'Contatta GitHub per notificare nuove versioni (richiede Internet)',
-            icon: Icons.system_update_rounded,
-            value: privacy.checkUpdatesOnStart,
-            onChanged: privacyNotifier.setCheckUpdatesOnStart,
-          ),
-          const SizedBox(height: 10),
-          _ToggleCard(
-            title: 'Feedback remoto (Wiredash)',
-            subtitle:
-                'Permette l\'invio volontario di segnalazioni con screenshot',
-            icon: Icons.feedback_rounded,
-            value: privacy.allowRemoteFeedback,
-            onChanged: privacyNotifier.setAllowRemoteFeedback,
-          ),
-          const SizedBox(height: 10),
           _AnalyticsCard(
             analyticsEnabled: analyticsConsent,
             onChanged: (value) {

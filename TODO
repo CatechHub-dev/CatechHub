@@ -1,20 +1,13 @@
----- FIRST STABLE RELEASE - v1.0.0 ----
-
-integra blocco automatico a chiusura dell'applicazione, anche mediante killing da drawer - OK!
-
-Integra cancellazione parziale o totale del database - OK!
-
-Ottimizza codice - OK!
-
-Integra salvataggio foto e pdf per ragazzo, per evento - v1.1.0 (5) - OK!
-
-Integra gestione riunioni (no appello) - v1.1.0 (10) - OK!
-
 Integra code obfuscation
 
-Integra verifica numeri
+Controllo aggiornametni, blocco screen e feedback consentiti dy default OK
 
-mio gruppo *codex - v1.2.0 (4)
+Allegati inseribili anche in prima registrazione, chiedi nome OK
+Foto non funzionanti OK
+
+Integra verifica numeri OK
+
+mio gruppo *codex - v1.2.0 (4) OK
     -aggiungi visualizzazione rapida:
         - nome cognome nascita numero
         - nome e cognome, numero genitori
@@ -24,9 +17,9 @@ mio gruppo *codex - v1.2.0 (4)
         - allegati
         - assenze
 
-Integra condivisione cifrata via qr - v1.3.0 (5) *codex 
-
 Integra pagina di aggiornamento
+
+Integra condivisione cifrata via qr - v1.3.0 (5) *codex 
 
 Integra salvataggio di file di backup - v1.4.0 (7) *codex
 

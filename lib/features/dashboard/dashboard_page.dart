@@ -621,14 +621,9 @@ class _QuickActionsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = [
       _ActionItem(
-        title: 'Registro',
-        icon: Icons.check_circle_outline,
-        path: '/attendance-meetings',
-      ),
-      _ActionItem(
-        title: 'Documenti',
-        icon: Icons.description_outlined,
-        path: '/documents',
+        title: 'Verifica Numero',
+        icon: Icons.phone_rounded,
+        path: '/verify-number',
       ),
       _ActionItem(
         title: 'Allergie',

@@ -9,11 +9,17 @@ import 'core/auth/session_lifecycle_observer.dart';
 import 'core/analytics/analytics_provider.dart';
 import 'core/analytics/analytics_service.dart';
 import 'core/analytics/event_tracking_service.dart';
+import 'core/navigation/back_button_handler.dart';
 import 'core/security/privacy_settings.dart';
 import 'core/services/update_service.dart';
 import 'core/storage/local_database.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
+
+// Inizializza la navigatorKey per il servizio di aggiornamento
+void _initUpdateServiceNavigatorKey() {
+  UpdateService.setNavigatorKey(navigatorKey);
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +30,7 @@ Future<void> main() async {
   final privacy = PrivacySettingsNotifier.loadFromStorage();
   await PrivacySettingsNotifier.applyNativeOptions(privacy);
 
+  _initUpdateServiceNavigatorKey();
   await UpdateService.initNotifications();
   if (privacy.checkUpdatesOnStart) {
     UpdateService.checkForUpdates();
@@ -68,10 +75,13 @@ class MyApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       home: authState.when(
         data: (_) {
-          return Router(
-            routerDelegate: router.routerDelegate,
-            routeInformationParser: router.routeInformationParser,
-            routeInformationProvider: router.routeInformationProvider,
+          return BackButtonHandler(
+            router: router,
+            child: Router(
+              routerDelegate: router.routerDelegate,
+              routeInformationParser: router.routeInformationParser,
+              routeInformationProvider: router.routeInformationProvider,
+            ),
           );
         },
         loading: () => const _LoadingScreen(),

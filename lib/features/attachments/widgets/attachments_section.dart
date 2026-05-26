@@ -97,6 +97,7 @@ class AttachmentsSection extends ConsumerWidget {
                       );
                     },
                     onDelete: () => _confirmDelete(context, ref, att),
+                    onRename: () => _renameAttachment(context, ref, att),
                   ),
                 ),
             ],
@@ -177,12 +178,18 @@ class AttachmentsSection extends ConsumerWidget {
     );
     if (file == null) return;
 
+    // Genera un nome appropriato per il file
+    String fileName = file.name.isNotEmpty ? file.name : 'file_${DateTime.now().millisecondsSinceEpoch}';
+    
+    // Chiedi all'utente di confermare o modificare il nome
+    final finalName = await _askForFileName(context, fileName);
+    
     final repo = ref.read(attachmentsRepositoryProvider);
     final saved = await repo.addFromPath(
       parentId: parentId,
       parentType: parentType,
       filePath: file.path,
-      name: file.name,
+      name: finalName,
       mimeType: _mimeFromPath(file.path, fallback: 'image/jpeg'),
     );
 
@@ -206,12 +213,15 @@ class AttachmentsSection extends ConsumerWidget {
       throw Exception('Impossibile leggere il PDF selezionato');
     }
 
+    // Chiedi all'utente di confermare o modificare il nome
+    final finalName = await _askForFileName(context, file.name);
+
     final repo = ref.read(attachmentsRepositoryProvider);
     final saved = await repo.addFromPath(
       parentId: parentId,
       parentType: parentType,
       filePath: path,
-      name: file.name,
+      name: finalName,
       mimeType: 'application/pdf',
     );
 
@@ -219,6 +229,77 @@ class AttachmentsSection extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_savedMessage(saved.size, 'PDF'))),
       );
+    }
+  }
+
+  Future<String> _askForFileName(BuildContext context, String defaultName) async {
+    final controller = TextEditingController(text: defaultName);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nome allegato'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Inserisci il nome del file',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Salva'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result?.trim().isNotEmpty == true ? result! : defaultName;
+  }
+
+  Future<void> _renameAttachment(
+    BuildContext context,
+    WidgetRef ref,
+    Attachment att,
+  ) async {
+    final controller = TextEditingController(text: att.name);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rinomina allegato'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Nuovo nome del file',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Salva'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (result != null && result.trim().isNotEmpty && result != att.name) {
+      // Implementare la rinomina nel repository se necessario
+      // Per ora, mostriamo solo un messaggio
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Funzionalità di rinomina in arrivo')),
+        );
+      }
     }
   }
 
@@ -278,11 +359,13 @@ class _AttachmentTile extends StatelessWidget {
     required this.attachment,
     required this.onOpen,
     required this.onDelete,
+    required this.onRename,
   });
 
   final Attachment attachment;
   final VoidCallback onOpen;
   final VoidCallback onDelete;
+  final VoidCallback onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -306,9 +389,20 @@ class _AttachmentTile extends StatelessWidget {
         subtitle: Text(
           '${attachment.sizeLabel} · ${_formatDate(attachment.createdAt)}',
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-          onPressed: onDelete,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+              onPressed: onRename,
+              tooltip: 'Rinomina',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              onPressed: onDelete,
+              tooltip: 'Elimina',
+            ),
+          ],
         ),
         onTap: onOpen,
       ),

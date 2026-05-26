@@ -59,7 +59,7 @@ class SettingsPage extends ConsumerWidget {
           _SettingsItem(
             icon: Icons.feedback_rounded,
             title: 'Invia Feedback',
-            subtitle: 'Segnala un problema o suggerisci un’idea',
+            subtitle: "Segnala un problema o suggerisci un'idea",
             color: Colors.orange,
             onTap: () {
               if (!privacy.allowRemoteFeedback) {
@@ -114,6 +114,23 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => context.go('/delete-data'),
           ),
 
+          const SizedBox(height: 24),
+
+          /// =========================
+          /// APP
+          /// =========================
+          const _SectionTitle(title: 'App'),
+
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.system_update_rounded,
+            title: 'Aggiornamenti',
+            subtitle: 'Controlla nuove versioni',
+            color: const Color(0xFF174A7E),
+            onTap: () => context.go('/updates'),
+          ),
+
           const SizedBox(height: 30),
 
           /// =========================
@@ -122,7 +139,7 @@ class SettingsPage extends ConsumerWidget {
           _SettingsItem(
             icon: Icons.logout_rounded,
             title: 'Logout',
-            subtitle: 'Esci dall’app',
+            subtitle: "Esci dall'app",
             color: Colors.red,
             isDestructive: true,
             onTap: () async {
@@ -281,27 +298,28 @@ class _SettingsItem extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: isDestructive ? Colors.red : Colors.black87,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                       color: Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: Colors.grey,
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey.shade400,
             ),
           ],
         ),

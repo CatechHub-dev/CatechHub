@@ -1,4 +1,6 @@
 # CatechHub
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FCatechHub-dev%2FCatechHub.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FCatechHub-dev%2FCatechHub?ref=badge_shield)
+
 
 `CatechHub` è un'app Flutter per la gestione locale del registro di catechismo. È pensata per funzionare su dispositivi Android supportati, con archiviazione locale cifrata e autenticazione tramite PIN e biometria.
 
@@ -84,3 +86,7 @@ flutter pub run build_runner build --delete-conflicting-outputs
 ## Nota
 
 L'app è in stato **Alpha** e le funzionalità potrebbero non essere definitive. Usa questa versione per test e sviluppo, non per ambiente di produzione.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FCatechHub-dev%2FCatechHub.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FCatechHub-dev%2FCatechHub?ref=badge_large)

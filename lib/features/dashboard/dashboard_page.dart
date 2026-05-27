@@ -635,6 +635,11 @@ class _QuickActionsGrid extends StatelessWidget {
         icon: Icons.person_outline,
         path: '/autonomous-exits',
       ),
+      _ActionItem(
+        title: 'Registro Contatto',
+        icon: Icons.contact_phone_rounded,
+        path: '/contact-notes',
+      ),
     ];
 
     return LayoutBuilder(

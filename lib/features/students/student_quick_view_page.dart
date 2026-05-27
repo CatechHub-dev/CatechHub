@@ -4,8 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../shared/models/attachment_parent_type.dart';
+import '../../shared/models/contact_note_model.dart';
 import '../../shared/models/student_model.dart';
 import '../attachments/widgets/attachments_section.dart';
+import '../contact_notes/contact_notes_repository.dart';
+import '../contact_notes/student_contact_notes_page.dart';
 import '../documents/documents_provider.dart';
 import '../meetings/attendance_repository.dart';
 import '../planning/planning_repository.dart';
@@ -84,6 +87,8 @@ class StudentQuickViewPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             _NotesCard(student: student),
+            const SizedBox(height: 16),
+            _ContactNotesCard(student: student),
             const SizedBox(height: 16),
             _AbsencesCard(studentId: student.id),
           ],
@@ -541,6 +546,137 @@ class _AbsencesCard extends ConsumerWidget {
               }).toList(),
             );
           },
+        ),
+      ],
+    );
+  }
+}
+
+class _ContactNotesCard extends ConsumerWidget {
+  final Student student;
+
+  const _ContactNotesCard({required this.student});
+
+  IconData _mediumIcon(String medium) {
+    switch (medium) {
+      case 'whatsapp':
+        return Icons.message_rounded;
+      case 'cellulare':
+        return Icons.phone_rounded;
+      case 'de_visu':
+      default:
+        return Icons.person_rounded;
+    }
+  }
+
+  Color _mediumColor(String medium) {
+    switch (medium) {
+      case 'whatsapp':
+        return Colors.green;
+      case 'cellulare':
+        return Colors.blue;
+      case 'de_visu':
+      default:
+        return Colors.orange;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.watch(contactNotesRepoProvider);
+    final notes = repo.getNotesForStudentSync(student.id);
+    final recentNotes = notes.take(3).toList();
+
+    return _InfoCard(
+      title: 'Note di Contatto',
+      icon: Icons.contact_phone_rounded,
+      color: Colors.teal,
+      children: [
+        if (recentNotes.isEmpty)
+          Text(
+            'Nessuna nota di contatto',
+            style: TextStyle(
+                color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+          )
+        else
+          ...recentNotes.map((note) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _mediumColor(note.medium).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: _mediumColor(note.medium).withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(_mediumIcon(note.medium),
+                            size: 16, color: _mediumColor(note.medium)),
+                        const SizedBox(width: 6),
+                        Text(
+                          ContactNote.mediumLabel(note.medium),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: _mediumColor(note.medium),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          DateFormat('dd/MM/yy HH:mm').format(note.dateTime),
+                          style: TextStyle(
+                              fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      note.notes,
+                      style: const TextStyle(fontSize: 13),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              )),
+        if (notes.length > 3)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '+ ${notes.length - 3} altre note',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.teal.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      StudentContactNotesPage(student: student),
+                ),
+              );
+            },
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('Vedi tutte'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.teal,
+              side: const BorderSide(color: Colors.teal),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
         ),
       ],
     );

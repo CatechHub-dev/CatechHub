@@ -7,6 +7,7 @@ import '../../shared/models/student_model.dart';
 import '../../shared/models/class_model.dart';
 import '../../shared/models/planning_meeting.dart';
 import '../../shared/models/attachment_model.dart';
+import '../../shared/models/contact_note_model.dart';
 import 'encryption_service.dart';
 
 class DataExportService {
@@ -19,6 +20,7 @@ class DataExportService {
       'programmazione': _exportProgrammazione(),
       'allegati_giornate': await _exportAllegatiPerTipo('meeting'),
       'documenti': _exportDocumenti(),
+      'note_contatto': _exportNoteContatto(),
     };
 
     return allData;
@@ -46,6 +48,11 @@ class DataExportService {
 
     if (includeDocumenti) {
       selectiveData['documenti'] = _exportDocumenti();
+    }
+
+    // Le note di contatto vengono sempre incluse con l'anagrafica
+    if (includeAnagrafica) {
+      selectiveData['note_contatto'] = _exportNoteContatto();
     }
 
     return selectiveData;
@@ -177,6 +184,11 @@ class DataExportService {
     // Importa allegati generici (per compatibilità con vecchi export)
     if (receivedData.containsKey('allegati')) {
       await _importAllegatiGenerici(receivedData['allegati']);
+    }
+
+    // Importa note di contatto
+    if (receivedData.containsKey('note_contatto')) {
+      await _importNoteContatto(receivedData['note_contatto']);
     }
   }
 
@@ -343,6 +355,33 @@ class DataExportService {
         }
 
         await attachmentsBox.put(id, attachmentMap);
+      }
+    }
+  }
+
+  // Esporta note di contatto
+  static Map<String, dynamic> _exportNoteContatto() {
+    final notes = LocalDatabase.values(
+      LocalDatabase.contactNotes(),
+      (id, data) => ContactNote.fromMap(id, data),
+    );
+
+    return {
+      'notes': notes.map((n) => n.toMap()..['id'] = n.id).toList(),
+    };
+  }
+
+  // Importa note di contatto
+  static Future<void> _importNoteContatto(Map<String, dynamic> noteData) async {
+    final box = LocalDatabase.contactNotes();
+    await box.clear();
+
+    final notes = noteData['notes'] as List<dynamic>?;
+    if (notes != null) {
+      for (final noteItem in notes) {
+        final noteMap = noteItem as Map<String, dynamic>;
+        final id = noteMap['id'] as String? ?? LocalDatabase.newId('contact_note');
+        await box.put(id, noteMap);
       }
     }
   }

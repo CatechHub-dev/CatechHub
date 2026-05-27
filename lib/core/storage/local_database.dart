@@ -14,6 +14,7 @@ class LocalDatabase {
   static const documentsBox = 'documents_box';
   static const documentDeliveriesBox = 'document_deliveries_box';
   static const attachmentsBox = 'attachments_box';
+  static const contactNotesBox = 'contact_notes_box';
 
   static const _secureStorage = FlutterSecureStorage();
   static const _encryptionKeyName = 'secure_database_key';
@@ -47,6 +48,7 @@ class LocalDatabase {
       Hive.openBox<Map>(documentsBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(documentDeliveriesBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(attachmentsBox, encryptionCipher: _cipher),
+      Hive.openBox<Map>(contactNotesBox, encryptionCipher: _cipher),
     ]);
 
     // La sessione non va persistita: rimuove eventuali flag legacy.
@@ -63,6 +65,7 @@ class LocalDatabase {
   static Box<Map> documents() => Hive.box<Map>(documentsBox);
   static Box<Map> documentDeliveries() => Hive.box<Map>(documentDeliveriesBox);
   static Box<Map> attachments() => Hive.box<Map>(attachmentsBox);
+  static Box<Map> contactNotes() => Hive.box<Map>(contactNotesBox);
 
   static Uint8List encryptBytes(Uint8List plain) {
     final out = Uint8List(_cipher.maxEncryptedSize(plain));

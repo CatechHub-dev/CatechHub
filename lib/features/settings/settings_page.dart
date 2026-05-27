@@ -153,6 +153,16 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => context.go('/data-share'),
           ),
 
+          const SizedBox(height: 12),
+
+          _SettingsItem(
+            icon: Icons.backup_rounded,
+            title: 'Backup',
+            subtitle: 'Esporta o importa un backup completo',
+            color: Colors.teal,
+            onTap: () => context.go('/backup'),
+          ),
+
           const SizedBox(height: 30),
 
           /// =========================

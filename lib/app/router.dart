@@ -17,6 +17,7 @@ import '../features/documents/documents_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/settings/privacy.dart';
 import '../features/settings/delete_data_page.dart';
+import '../features/settings/backup_page.dart';
 import '../features/settings/change_pin_page.dart';
 import '../features/documents/document_detail_page.dart';
 import '../features/students/allergies_page.dart';
@@ -136,6 +137,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     GoRoute(
       path: '/change-pin',
       builder: (context, state) => const ChangePinPage(),
+    ),
+
+    GoRoute(
+      path: '/backup',
+      builder: (context, state) => const BackupPage(),
     ),
 
     /// MY GROUP

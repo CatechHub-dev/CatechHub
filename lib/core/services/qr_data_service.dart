@@ -91,7 +91,7 @@ class QRChunk {
 }
 
 class QRDataService {
-  static const int maxQRSize = 2500; // Massimi caratteri per QR code
+  static const int maxQRSize = 600; // Massimi caratteri per QR code (ridotto per migliore leggibilità)
   static const int pinLength = 8;
 
   // Genera PIN di 8 cifre
@@ -145,17 +145,12 @@ class QRDataService {
     Map<String, dynamic> data,
     String pin,
   ) {
-    final compressedData = compressData(data);
-    final chunks = segmentData(compressedData);
     final checksum = calculateChecksum(data);
 
     return DataPackage(
       pin: pin,
-      data: {
-        'compressed': compressedData,
-        'originalSize': data.toString().length,
-      },
-      totalChunks: chunks.length,
+      data: data,
+      totalChunks: 0, // Verrà calcolato dopo la segmentazione
       checksum: checksum,
     );
   }
@@ -182,6 +177,12 @@ class QRDataService {
   static bool verifyChunkChecksum(QRChunk chunk) {
     final expectedChecksum = _calculateChunkChecksum(chunk.data);
     return chunk.checksum == expectedChecksum;
+  }
+
+  // Verifica checksum del pacchetto completo
+  static bool verifyPackageChecksum(DataPackage package) {
+    final expectedChecksum = calculateChecksum(package.data);
+    return package.checksum == expectedChecksum;
   }
 
   // Assembla chunk ricevuti
@@ -214,8 +215,8 @@ class QRDataService {
       final packageMap = jsonDecode(assembledData) as Map<String, dynamic>;
       final package = DataPackage.fromMap(packageMap);
       
-      final compressed = package.data['compressed'] as String;
-      return decompressData(compressed);
+      // I dati non sono più compressi internamente
+      return Map<String, dynamic>.from(package.data);
     } catch (e) {
       throw Exception('Errore nell\'estrazione dei dati: $e');
     }
@@ -230,6 +231,8 @@ class QRDataService {
 
     if (options.includeAnagrafica) {
       shareData['anagrafica'] = allData['anagrafica'] ?? {};
+      // Includi automaticamente allegati dei ragazzi
+      shareData['allegati_studenti'] = allData['allegati_studenti'] ?? {};
     }
 
     if (options.includeAgenda) {
@@ -238,13 +241,12 @@ class QRDataService {
 
     if (options.includeProgrammazione) {
       shareData['programmazione'] = allData['programmazione'] ?? {};
+      // Includi automaticamente allegati delle giornate
+      shareData['allegati_giornate'] = allData['allegati_giornate'] ?? {};
     }
 
     if (options.includeDocumenti) {
       shareData['documenti'] = allData['documenti'] ?? {};
-      if (options.includeAllegati) {
-        shareData['allegati'] = allData['allegati'] ?? {};
-      }
     }
 
     return shareData;

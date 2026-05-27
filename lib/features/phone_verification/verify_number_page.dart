@@ -281,7 +281,7 @@ class _MatchCard extends StatelessWidget {
             if (match.studentName != null) ...[
               const SizedBox(height: 4),
               Text(
-                'Figlio/a di: ${match.studentName}',
+                'Genitore di: ${match.studentName}',
                 style: TextStyle(
                   color: Colors.grey.shade600,
                   fontSize: 12,

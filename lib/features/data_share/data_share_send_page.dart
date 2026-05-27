@@ -85,8 +85,8 @@ class _DataShareSendPageState extends ConsumerState<DataShareSendPage> {
   }
 
   void _startAnimation() {
-    // Mostra ogni chunk per 3 secondi
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    // Mostra ogni chunk a 3 FPS (circa 333ms per frame)
+    _timer = Timer.periodic(const Duration(milliseconds: 333), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -223,6 +223,7 @@ class _QRDisplayCard extends StatelessWidget {
           child: QrImageView(
             data: chunk.toJson(),
             version: QrVersions.auto,
+            errorCorrectionLevel: QrErrorCorrectLevel.L,
             size: 280,
             backgroundColor: Colors.white,
           ),

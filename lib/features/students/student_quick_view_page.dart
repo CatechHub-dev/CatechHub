@@ -7,9 +7,44 @@ import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/student_model.dart';
 import '../attachments/widgets/attachments_section.dart';
 import '../documents/documents_provider.dart';
+import '../meetings/attendance_repository.dart';
+import '../planning/planning_repository.dart';
 import 'students_repository.dart';
 
 final studentsRepoProvider = Provider((ref) => StudentsRepository());
+
+final _studentAbsencesProvider = StreamProvider.autoDispose
+    .family<List<Map<String, dynamic>>, String>((ref, studentId) {
+  final attendanceRepo = AttendanceRepository();
+  final planningRepo = PlanningRepository();
+
+  return attendanceRepo.getAttendance().map((attendanceRecords) {
+    final meetings = planningRepo.getMeetingsSync();
+    final meetingMap = {for (var m in meetings) m.id: m};
+
+    final absences = <Map<String, dynamic>>[];
+
+    for (final record in attendanceRecords) {
+      final presenceMap = Map<String, dynamic>.from(record['presence'] as Map? ?? {});
+      final studentStatus = presenceMap[studentId]?.toString();
+
+      if (studentStatus == 'Assente') {
+        final meeting = meetingMap[record['id']];
+        final date = DateTime.tryParse(record['date']?.toString() ?? '') ?? DateTime.now();
+
+        absences.add({
+          'date': date,
+          'meetingTitle': meeting?.title ?? 'Riunione sconosciuta',
+          'meetingActivity': meeting?.activity ?? '',
+          'isReunion': meeting?.isReunion ?? false,
+        });
+      }
+    }
+
+    absences.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+    return absences;
+  });
+});
 
 class StudentQuickViewPage extends ConsumerWidget {
   final Student student;
@@ -401,15 +436,111 @@ class _AbsencesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Per ora mostriamo un placeholder, in seguito si può integrare con il sistema di presenze
+    final absencesAsync = ref.watch(_studentAbsencesProvider(studentId));
+
     return _InfoCard(
       title: 'Assenze',
       icon: Icons.event_busy_rounded,
       color: Colors.red,
       children: [
-        Text(
-          'Sistema assenze in integrazione',
-          style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+        absencesAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(),
+          ),
+          error: (e, _) => Text(
+            'Errore nel caricamento assenze: $e',
+            style: TextStyle(color: Colors.red.shade700),
+          ),
+          data: (absences) {
+            if (absences.isEmpty) {
+              return Text(
+                'Nessuna assenza registrata',
+                style: TextStyle(color: Colors.grey.shade600),
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: absences.map((absence) {
+                final date = absence['date'] as DateTime;
+                final title = absence['meetingTitle'] as String;
+                final activity = absence['meetingActivity'] as String;
+                final isReunion = absence['isReunion'] as bool;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200, width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 16,
+                            color: Colors.red.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(date),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade900,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      if (activity.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          activity,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                      if (isReunion) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Riunione catechisti',
+                            style: TextStyle(
+                              color: Colors.orange.shade900,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );

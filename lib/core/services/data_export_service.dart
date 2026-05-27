@@ -3,16 +3,19 @@ import '../../shared/models/student_model.dart';
 import '../../shared/models/class_model.dart';
 import '../../shared/models/planning_meeting.dart';
 import '../../shared/models/attachment_model.dart';
+import 'encryption_service.dart';
+import 'dart:convert';
 
 class DataExportService {
   // Esporta tutti i dati dal database
   static Map<String, dynamic> exportAllData() {
     final Map<String, dynamic> allData = {
       'anagrafica': _exportAnagrafica(),
+      'allegati_studenti': _exportAllegatiPerTipo('student'),
       'agenda': _exportAgenda(),
       'programmazione': _exportProgrammazione(),
+      'allegati_giornate': _exportAllegatiPerTipo('meeting'),
       'documenti': _exportDocumenti(),
-      'allegati': _exportAllegati(),
     };
 
     return allData;
@@ -24,6 +27,8 @@ class DataExportService {
 
     if (includeAnagrafica) {
       selectiveData['anagrafica'] = _exportAnagrafica();
+      // Includi automaticamente allegati dei ragazzi
+      selectiveData['allegati_studenti'] = _exportAllegatiPerTipo('student');
     }
 
     if (includeAgenda) {
@@ -32,13 +37,12 @@ class DataExportService {
 
     if (includeProgrammazione) {
       selectiveData['programmazione'] = _exportProgrammazione();
+      // Includi automaticamente allegati delle giornate
+      selectiveData['allegati_giornate'] = _exportAllegatiPerTipo('meeting');
     }
 
     if (includeDocumenti) {
       selectiveData['documenti'] = _exportDocumenti();
-      if (includeAllegati) {
-        selectiveData['allegati'] = _exportAllegati();
-      }
     }
 
     return selectiveData;
@@ -104,17 +108,23 @@ class DataExportService {
     };
   }
 
-  // Esporta allegati
-  static Map<String, dynamic> _exportAllegati() {
-    final attachments = LocalDatabase.values(
+  // Esporta allegati per tipo specifico (student o meeting)
+  static Map<String, dynamic> _exportAllegatiPerTipo(String parentType) {
+    final allAttachments = LocalDatabase.values(
       LocalDatabase.attachments(),
       (id, data) => Attachment.fromMap(id, data),
     );
 
+    // Filtra per tipo
+    final filteredAttachments = allAttachments
+        .where((a) => a.parentType == parentType)
+        .toList();
+
     // Nota: I file binari non vengono esportati via QR code per limitazioni di dimensione
     // Verranno esportati solo i metadati
     return {
-      'attachments': attachments.map((a) => a.toMap()..['id'] = a.id).toList(),
+      'attachments': filteredAttachments.map((a) => a.toMap()..['id'] = a.id).toList(),
+      'parentType': parentType,
       'note': 'I file binari non sono inclusi nella condivisione QR code',
     };
   }
@@ -124,6 +134,11 @@ class DataExportService {
     // Importa anagrafica
     if (receivedData.containsKey('anagrafica')) {
       await _importAnagrafica(receivedData['anagrafica']);
+    }
+
+    // Importa allegati dei ragazzi
+    if (receivedData.containsKey('allegati_studenti')) {
+      await _importAllegati(receivedData['allegati_studenti'], 'student');
     }
 
     // Importa agenda
@@ -136,14 +151,19 @@ class DataExportService {
       await _importProgrammazione(receivedData['programmazione']);
     }
 
+    // Importa allegati delle giornate
+    if (receivedData.containsKey('allegati_giornate')) {
+      await _importAllegati(receivedData['allegati_giornate'], 'meeting');
+    }
+
     // Importa documenti
     if (receivedData.containsKey('documenti')) {
       await _importDocumenti(receivedData['documenti']);
     }
 
-    // Importa allegati (solo metadati)
+    // Importa allegati generici (per compatibilità con vecchi export)
     if (receivedData.containsKey('allegati')) {
-      await _importAllegati(receivedData['allegati']);
+      await _importAllegatiGenerici(receivedData['allegati']);
     }
   }
 
@@ -243,8 +263,35 @@ class DataExportService {
     }
   }
 
-  // Importa allegati
-  static Future<void> _importAllegati(Map<String, dynamic> allegatiData) async {
+  // Importa allegati per tipo specifico
+  static Future<void> _importAllegati(Map<String, dynamic> allegatiData, String parentType) async {
+    final attachmentsBox = LocalDatabase.attachments();
+
+    // Rimuovi solo gli allegati del tipo specificato
+    final allAttachments = LocalDatabase.values(
+      LocalDatabase.attachments(),
+      (id, data) => Attachment.fromMap(id, data),
+    );
+
+    for (final attachment in allAttachments) {
+      if (attachment.parentType == parentType) {
+        await attachmentsBox.delete(attachment.id);
+      }
+    }
+
+    // Importa allegati (solo metadati)
+    final attachments = allegatiData['attachments'] as List<dynamic>?;
+    if (attachments != null) {
+      for (final attachmentData in attachments) {
+        final attachmentMap = attachmentData as Map<String, dynamic>;
+        final id = attachmentMap['id'] as String? ?? LocalDatabase.newId('attachment');
+        await attachmentsBox.put(id, attachmentMap);
+      }
+    }
+  }
+
+  // Importa allegati generici (per compatibilità con vecchi export)
+  static Future<void> _importAllegatiGenerici(Map<String, dynamic> allegatiData) async {
     final attachmentsBox = LocalDatabase.attachments();
 
     // Svuota box esistente
@@ -273,5 +320,29 @@ class DataExportService {
     }
 
     return true;
+  }
+
+  // Esporta tutti i dati cifrati con password
+  static String exportEncryptedData(String password) {
+    final allData = exportAllData();
+    return EncryptionService.encryptData(allData, password);
+  }
+
+  // Importa dati cifrati con verifica password
+  static Future<void> importEncryptedData(String encryptedData, String password) async {
+    final decryptedData = EncryptionService.decryptData(encryptedData, password);
+    
+    // Verifica integrità dati
+    if (!verifyDataIntegrity(decryptedData)) {
+      throw Exception('Integrità dei dati non valida');
+    }
+
+    // Importa i dati
+    await importData(decryptedData);
+  }
+
+  // Verifica la password per dati cifrati
+  static bool verifyEncryptedPassword(String encryptedData, String password) {
+    return EncryptionService.verifyPassword(encryptedData, password);
   }
 }

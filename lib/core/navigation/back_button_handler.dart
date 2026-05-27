@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 /// Widget che gestisce il comportamento del tasto indietro Android.
+/// - Prima pressione fuori dalla dashboard: naviga alla dashboard
 /// - Prima pressione sulla dashboard: mostra messaggio "Premi ancora per uscire"
-/// - Seconda pressione entro 2 secondi: chiude l'app
+/// - Seconda pressione entro 2 secondi sulla dashboard: chiude l'app
 class BackButtonHandler extends StatefulWidget {
   final Widget child;
   final GoRouter router;
@@ -27,7 +28,7 @@ class _BackButtonHandlerState extends State<BackButtonHandler> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: _canPop(context),
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         
         _handleBackPressed(context);
@@ -37,15 +38,8 @@ class _BackButtonHandlerState extends State<BackButtonHandler> {
   }
 
   bool _canPop(BuildContext context) {
-    // Ottieni la posizione corrente dal router
-    final location = widget.router.routeInformationProvider.value.uri.path;
-    
-    // Se non siamo sulla dashboard, permetti il pop normale
-    if (location != '/') {
-      return true;
-    }
-    
-    // Sulla dashboard, non permettere il pop automatico
+    // Non permettere il pop automatico in nessun caso
+    // Gestiamo tutto manualmente in _handleBackPressed
     return false;
   }
 
@@ -53,9 +47,9 @@ class _BackButtonHandlerState extends State<BackButtonHandler> {
     // Ottieni la posizione corrente dal router
     final location = widget.router.routeInformationProvider.value.uri.path;
     
-    // Se non siamo sulla dashboard, naviga normalmente
+    // Se non siamo sulla dashboard, naviga alla dashboard
     if (location != '/') {
-      widget.router.pop();
+      widget.router.push('/');
       return;
     }
 

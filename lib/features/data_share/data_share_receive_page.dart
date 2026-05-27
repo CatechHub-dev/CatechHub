@@ -81,8 +81,17 @@ class _DataShareReceivePageState extends State<DataShareReceivePage> {
     // Assembla i chunk
     try {
       final assembledData = QRDataService.assembleChunks(_receivedChunks);
-      final packageMap = QRDataService.extractPackageData(assembledData);
-      final package = DataPackage.fromMap(packageMap);
+      final decompressedData = QRDataService.decompressData(assembledData);
+      final package = DataPackage.fromMap(decompressedData);
+
+      // Verifica checksum del pacchetto
+      if (!QRDataService.verifyPackageChecksum(package)) {
+        setState(() {
+          _errorMessage = 'Checksum del pacchetto non valido';
+          _isScanning = true;
+        });
+        return;
+      }
 
       setState(() {
         _pin = package.pin;
@@ -132,7 +141,9 @@ class _DataShareReceivePageState extends State<DataShareReceivePage> {
     try {
       // Assembla i dati
       final assembledData = QRDataService.assembleChunks(_receivedChunks);
-      final receivedData = QRDataService.extractPackageData(assembledData);
+      final decompressedData = QRDataService.decompressData(assembledData);
+      final package = DataPackage.fromMap(decompressedData);
+      final receivedData = package.data;
 
       // Verifica integrità dati
       if (!DataExportService.verifyDataIntegrity(receivedData)) {

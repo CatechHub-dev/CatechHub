@@ -1,30 +1,9 @@
 Integra code obfuscation
 
-Controllo aggiornametni, blocco screen e feedback consentiti dy default OK
-
-Allegati inseribili anche in prima registrazione, chiedi nome OK
-Foto non funzionanti OK
-
-Integra verifica numeri OK
-
-mio gruppo *codex - v1.2.0 (4) OK
-    -aggiungi visualizzazione rapida:
-        - nome cognome nascita numero
-        - nome e cognome, numero genitori
-        - allergie ed autorizzazioni
-        - documenti
-        - note
-        - allegati
-        - assenze
-
-Integra pagina di aggiornamento OK
-
 Integra condivisione cifrata via qr - v1.3.0 (5) OK
 
 Integra salvataggio di file di backup - v1.4.0 (7) *codex
 
-Inserisci manuale utente
+Integra registro di contatto
 
-Inserisci Readme.md
-
-Inserisci GitHub Pages
+Integra cambio pin in caso di dimenticanza

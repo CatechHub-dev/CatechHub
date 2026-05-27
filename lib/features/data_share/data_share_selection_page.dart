@@ -18,7 +18,6 @@ class _DataShareSelectionPageState extends ConsumerState<DataShareSelectionPage>
   bool _includeAgenda = true;
   bool _includeProgrammazione = true;
   bool _includeDocumenti = true;
-  bool _includeAllegati = false;
 
   bool _isLoading = false;
 
@@ -27,13 +26,13 @@ class _DataShareSelectionPageState extends ConsumerState<DataShareSelectionPage>
       _isLoading = true;
     });
 
-    // Prepara i dati selezionati
+    // Prepara i dati selezionati (allegati inclusi automaticamente)
     final selectedData = DataExportService.exportSelectiveData(
       _includeAnagrafica,
       _includeAgenda,
       _includeProgrammazione,
       _includeDocumenti,
-      _includeAllegati,
+      true, // Allegati inclusi automaticamente
     );
 
     // Genera PIN
@@ -74,7 +73,7 @@ class _DataShareSelectionPageState extends ConsumerState<DataShareSelectionPage>
                   _ShareOption(
                     icon: Icons.people_rounded,
                     title: 'Anagrafica',
-                    subtitle: 'Studenti e classi',
+                    subtitle: 'Studenti, classi e allegati',
                     value: _includeAnagrafica,
                     onChanged: (value) {
                       setState(() {
@@ -98,7 +97,7 @@ class _DataShareSelectionPageState extends ConsumerState<DataShareSelectionPage>
                   _ShareOption(
                     icon: Icons.event_note_rounded,
                     title: 'Programmazione',
-                    subtitle: 'Pianificazione attività',
+                    subtitle: 'Pianificazione e allegati giornate',
                     value: _includeProgrammazione,
                     onChanged: (value) {
                       setState(() {
@@ -115,28 +114,9 @@ class _DataShareSelectionPageState extends ConsumerState<DataShareSelectionPage>
                     onChanged: (value) {
                       setState(() {
                         _includeDocumenti = value ?? false;
-                        if (!_includeDocumenti) {
-                          _includeAllegati = false;
-                        }
                       });
                     },
                   ),
-
-                  if (_includeDocumenti)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 24),
-                      child: _ShareOption(
-                        icon: Icons.attach_file_rounded,
-                        title: 'Allegati',
-                        subtitle: 'Includi file allegati (metadati)',
-                        value: _includeAllegati,
-                        onChanged: (value) {
-                          setState(() {
-                            _includeAllegati = value ?? false;
-                          });
-                        },
-                      ),
-                    ),
 
                   const SizedBox(height: 32),
 

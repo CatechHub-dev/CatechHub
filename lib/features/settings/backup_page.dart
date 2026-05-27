@@ -67,7 +67,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = 'catechhub_backup_$timestamp.catechhub';
 
-      final savedPath = await FilePicker.platform.saveFile(
+      final savedPath = await FilePicker.saveFile(
         dialogTitle: 'Salva backup',
         fileName: fileName,
         bytes: bytes,
@@ -113,7 +113,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
 
     try {
       // Seleziona file
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.any,
         withData: true,
       );

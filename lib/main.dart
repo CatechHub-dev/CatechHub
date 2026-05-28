@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -46,6 +48,7 @@ class MyApp extends ConsumerWidget {
     'WIREDASH_PROJECT_ID',
   );
   static const _wiredashSecret = String.fromEnvironment('WIREDASH_API_SECRET');
+  static bool _promoterSurveyScheduled = false;
 
   bool get _wiredashConfigured =>
       _wiredashProjectId.isNotEmpty && _wiredashSecret.isNotEmpty;
@@ -59,9 +62,13 @@ class MyApp extends ConsumerWidget {
 
     EventTrackingService.init(analyticsConsent);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showAnalyticsConsentIfNeeded(context, ref);
-    });
+    if (!_promoterSurveyScheduled) {
+      _promoterSurveyScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAnalyticsConsentIfNeeded(context, ref);
+        _showMonthlyRandomPromoterSurvey(context, privacy);
+      });
+    }
 
     Widget app = MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -91,6 +98,11 @@ class MyApp extends ConsumerWidget {
       app = Wiredash(
         projectId: _wiredashProjectId,
         secret: _wiredashSecret,
+        psOptions: const PsOptions(
+          frequency: Duration(days: 30),
+          initialDelay: Duration(days: 7),
+          minimumAppStarts: 0,
+        ),
         child: app,
       );
     }
@@ -109,6 +121,47 @@ class MyApp extends ConsumerWidget {
           box.put('consent_shown', true);
         }
       });
+    }
+  }
+
+  void _showMonthlyRandomPromoterSurvey(
+    BuildContext context,
+    PrivacySettings privacy,
+  ) {
+    if (!privacy.allowRemoteFeedback ||
+        !_wiredashConfigured ||
+        !context.mounted) {
+      return;
+    }
+
+    final box = LocalDatabase.auth();
+    final now = DateTime.now().toUtc();
+    final nextSurveyKey = 'wiredash_promoter_next_date';
+    final nextSurveyValue = box.get(nextSurveyKey) as String?;
+    DateTime? nextSurveyDate;
+
+    if (nextSurveyValue != null) {
+      nextSurveyDate = DateTime.tryParse(nextSurveyValue)?.toUtc();
+    }
+
+    if (nextSurveyDate == null) {
+      final scheduledDate = now.add(Duration(days: 7 + Random().nextInt(24)));
+      box.put(nextSurveyKey, scheduledDate.toIso8601String());
+      return;
+    }
+
+    if (now.isBefore(nextSurveyDate)) {
+      return;
+    }
+
+    try {
+      Wiredash.of(context).showPromoterSurvey(inheritMaterialTheme: true);
+      final nextScheduledDate = now.add(
+        Duration(days: 30 + Random().nextInt(15)),
+      );
+      box.put(nextSurveyKey, nextScheduledDate.toIso8601String());
+    } catch (_) {
+      // Ignore if Wiredash is not available in this build or context.
     }
   }
 

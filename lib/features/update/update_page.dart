@@ -135,6 +135,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
       _downloadProgress = 0;
     });
 
+    File? downloadedFile;
     try {
       final response = await http.get(Uri.parse(apkUrl));
 
@@ -156,8 +157,11 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
 
       // Salva il file
       final path = '${directory.path}/catechhub_update.apk';
-      final file = File(path);
-      await file.writeAsBytes(bytes);
+      downloadedFile = File(path);
+      if (await downloadedFile.exists()) {
+        await downloadedFile.delete();
+      }
+      await downloadedFile.writeAsBytes(bytes);
 
       setState(() {
         _isDownloading = false;
@@ -182,6 +186,14 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Errore download: $e')));
+      }
+    } finally {
+      if (downloadedFile != null && await downloadedFile.exists()) {
+        try {
+          await downloadedFile.delete();
+        } catch (_) {
+          // Ignora se non è possibile cancellare il file.
+        }
       }
     }
   }

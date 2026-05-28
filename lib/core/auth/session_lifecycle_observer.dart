@@ -1,0 +1,53 @@
+import 'dart:async';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'auth_provider.dart';
+
+/// Blocca la sessione dopo 120 secondi quando l'app va in background.
+class SessionLifecycleObserver extends ConsumerStatefulWidget {
+  const SessionLifecycleObserver({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<SessionLifecycleObserver> createState() =>
+      _SessionLifecycleObserverState();
+}
+
+class _SessionLifecycleObserverState
+    extends ConsumerState<SessionLifecycleObserver>
+    with WidgetsBindingObserver {
+  Timer? _lockTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _lockTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Avvia il timer di 120 secondi quando l'app va in background
+      _lockTimer?.cancel();
+      _lockTimer = Timer(const Duration(seconds: 120), () {
+        ref.read(authStateProvider.notifier).lock();
+      });
+    } else if (state == AppLifecycleState.resumed) {
+      // Cancella il timer se l'app torna in primo piano
+      _lockTimer?.cancel();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}

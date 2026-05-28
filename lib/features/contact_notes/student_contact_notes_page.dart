@@ -1,0 +1,852 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../core/storage/local_database.dart';
+import '../../shared/models/contact_note_model.dart';
+import '../../shared/models/student_model.dart';
+import 'contact_notes_repository.dart';
+
+final _studentNotesProvider =
+    StreamProvider.autoDispose.family<List<ContactNote>, String>(
+  (ref, studentId) {
+    final repo = ref.watch(contactNotesRepoProvider);
+    return repo.getNotesForStudent(studentId);
+  },
+);
+
+class StudentContactNotesPage extends ConsumerWidget {
+  final Student student;
+
+  const StudentContactNotesPage({super.key, required this.student});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notesAsync = ref.watch(_studentNotesProvider(student.id));
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF174A7E),
+        foregroundColor: Colors.white,
+        title: Text('${student.surname} ${student.name}'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF174A7E),
+        onPressed: () => _showAddNoteDialog(context, ref),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: notesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Errore: $e')),
+        data: (notes) {
+          if (notes.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.contact_phone_outlined,
+                        size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Nessuna nota di contatto',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Premi + per aggiungere una nota',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: notes.length,
+            itemBuilder: (context, index) {
+              final note = notes[index];
+              return _ContactNoteCard(
+                note: note,
+                onDelete: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Elimina nota'),
+                      content: const Text(
+                          'Vuoi eliminare questa nota di contatto?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Annulla'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
+                          child: const Text('Elimina'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    final repo = ref.read(contactNotesRepoProvider);
+                    await repo.deleteNote(note.id);
+                  }
+                },
+                onEdit: () => _showEditNoteDialog(context, ref, note),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _showAddNoteDialog(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _AddContactNoteSheet(
+        studentId: student.id,
+        onSave: (note) async {
+          final repo = ref.read(contactNotesRepoProvider);
+          await repo.addNote(note);
+          if (ctx.mounted) Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+
+  void _showEditNoteDialog(
+      BuildContext context, WidgetRef ref, ContactNote note) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _EditContactNoteSheet(
+        note: note,
+        onSave: (updatedNote) async {
+          final repo = ref.read(contactNotesRepoProvider);
+          await repo.addNote(updatedNote);
+          if (ctx.mounted) Navigator.pop(ctx);
+        },
+      ),
+    );
+  }
+}
+
+class _ContactNoteCard extends StatelessWidget {
+  final ContactNote note;
+  final VoidCallback onDelete;
+  final VoidCallback onEdit;
+
+  const _ContactNoteCard({
+    required this.note,
+    required this.onDelete,
+    required this.onEdit,
+  });
+
+  IconData _mediumIcon(String medium) {
+    switch (medium) {
+      case 'whatsapp':
+        return Icons.message_rounded;
+      case 'cellulare':
+        return Icons.phone_rounded;
+      case 'de_visu':
+      default:
+        return Icons.person_rounded;
+    }
+  }
+
+  Color _mediumColor(String medium) {
+    switch (medium) {
+      case 'whatsapp':
+        return Colors.green;
+      case 'cellulare':
+        return Colors.blue;
+      case 'de_visu':
+      default:
+        return Colors.orange;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediumColor = _mediumColor(note.medium);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: mediumColor.withOpacity(0.06),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              children: [
+                Icon(_mediumIcon(note.medium), color: mediumColor, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  ContactNote.mediumLabel(note.medium),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: mediumColor,
+                    fontSize: 14,
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  DateFormat('dd/MM/yyyy  HH:mm').format(note.dateTime),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onEdit,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(Icons.edit,
+                      size: 18, color: Colors.blue.shade300),
+                ),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: onDelete,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(Icons.delete_outline,
+                      size: 18, color: Colors.red.shade300),
+                ),
+              ],
+            ),
+          ),
+          // Notes body
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              note.notes,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddContactNoteSheet extends StatefulWidget {
+  final String studentId;
+  final Future<void> Function(ContactNote) onSave;
+
+  const _AddContactNoteSheet({
+    required this.studentId,
+    required this.onSave,
+  });
+
+  @override
+  State<_AddContactNoteSheet> createState() => _AddContactNoteSheetState();
+}
+
+class _AddContactNoteSheetState extends State<_AddContactNoteSheet> {
+  final _notesController = TextEditingController();
+  String _selectedMedium = 'de_visu';
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now();
+    _selectedTime = TimeOfDay.now();
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date != null) {
+      setState(() => _selectedDate = date);
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (time != null) {
+      setState(() => _selectedTime = time);
+    }
+  }
+
+  Future<void> _save() async {
+    if (_notesController.text.trim().isEmpty) return;
+    HapticFeedback.mediumImpact();
+
+    setState(() => _isSaving = true);
+
+    final dateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
+    final note = ContactNote(
+      id: LocalDatabase.newId('contact_note'),
+      studentId: widget.studentId,
+      dateTime: dateTime,
+      medium: _selectedMedium,
+      notes: _notesController.text.trim(),
+    );
+
+    await widget.onSave(note);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Nuova Nota di Contatto',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF174A7E),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Date & Time
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today,
+                              size: 18, color: Color(0xFF174A7E)),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(_selectedDate),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickTime,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time,
+                              size: 18, color: Color(0xFF174A7E)),
+                          const SizedBox(width: 8),
+                          Text(
+                            _selectedTime.format(context),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Medium selector
+            const Text(
+              'Mezzo di comunicazione',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Color(0xFF174A7E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _MediumChip(
+                  label: 'De visu',
+                  icon: Icons.person_rounded,
+                  value: 'de_visu',
+                  selected: _selectedMedium == 'de_visu',
+                  onTap: () => setState(() => _selectedMedium = 'de_visu'),
+                ),
+                const SizedBox(width: 8),
+                _MediumChip(
+                  label: 'WhatsApp',
+                  icon: Icons.message_rounded,
+                  value: 'whatsapp',
+                  selected: _selectedMedium == 'whatsapp',
+                  onTap: () => setState(() => _selectedMedium = 'whatsapp'),
+                ),
+                const SizedBox(width: 8),
+                _MediumChip(
+                  label: 'Cellulare',
+                  icon: Icons.phone_rounded,
+                  value: 'cellulare',
+                  selected: _selectedMedium == 'cellulare',
+                  onTap: () => setState(() => _selectedMedium = 'cellulare'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Notes
+            TextField(
+              controller: _notesController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                labelText: 'Note sulla conversazione',
+                hintText: 'Descrivi il contenuto del contatto...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Save button
+            ElevatedButton(
+              onPressed: _isSaving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF174A7E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Salva',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditContactNoteSheet extends StatefulWidget {
+  final ContactNote note;
+  final Future<void> Function(ContactNote) onSave;
+
+  const _EditContactNoteSheet({
+    required this.note,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditContactNoteSheet> createState() => _EditContactNoteSheetState();
+}
+
+class _EditContactNoteSheetState extends State<_EditContactNoteSheet> {
+  late TextEditingController _notesController;
+  late String _selectedMedium;
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesController = TextEditingController(text: widget.note.notes);
+    _selectedMedium = widget.note.medium;
+    _selectedDate = widget.note.dateTime;
+    _selectedTime = TimeOfDay.fromDateTime(widget.note.dateTime);
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date != null) {
+      setState(() => _selectedDate = date);
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (time != null) {
+      setState(() => _selectedTime = time);
+    }
+  }
+
+  Future<void> _save() async {
+    if (_notesController.text.trim().isEmpty) return;
+    HapticFeedback.mediumImpact();
+
+    setState(() => _isSaving = true);
+
+    final dateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
+    final updatedNote = ContactNote(
+      id: widget.note.id,
+      studentId: widget.note.studentId,
+      dateTime: dateTime,
+      medium: _selectedMedium,
+      notes: _notesController.text.trim(),
+    );
+
+    await widget.onSave(updatedNote);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Modifica Nota di Contatto',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF174A7E),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Date & Time
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today,
+                              size: 18, color: Color(0xFF174A7E)),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(_selectedDate),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: _pickTime,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time,
+                              size: 18, color: Color(0xFF174A7E)),
+                          const SizedBox(width: 8),
+                          Text(
+                            _selectedTime.format(context),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Medium selector
+            const Text(
+              'Mezzo di comunicazione',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Color(0xFF174A7E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _MediumChip(
+                  label: 'De visu',
+                  icon: Icons.person_rounded,
+                  value: 'de_visu',
+                  selected: _selectedMedium == 'de_visu',
+                  onTap: () => setState(() => _selectedMedium = 'de_visu'),
+                ),
+                const SizedBox(width: 8),
+                _MediumChip(
+                  label: 'WhatsApp',
+                  icon: Icons.message_rounded,
+                  value: 'whatsapp',
+                  selected: _selectedMedium == 'whatsapp',
+                  onTap: () => setState(() => _selectedMedium = 'whatsapp'),
+                ),
+                const SizedBox(width: 8),
+                _MediumChip(
+                  label: 'Cellulare',
+                  icon: Icons.phone_rounded,
+                  value: 'cellulare',
+                  selected: _selectedMedium == 'cellulare',
+                  onTap: () => setState(() => _selectedMedium = 'cellulare'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Notes
+            TextField(
+              controller: _notesController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                labelText: 'Note sulla conversazione',
+                hintText: 'Descrivi il contenuto del contatto...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Save button
+            ElevatedButton(
+              onPressed: _isSaving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF174A7E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Salva Modifiche',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MediumChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final String value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MediumChip({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF174A7E).withOpacity(0.1)
+                : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? const Color(0xFF174A7E) : Colors.grey.shade300,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color:
+                    selected ? const Color(0xFF174A7E) : Colors.grey.shade600,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color:
+                      selected ? const Color(0xFF174A7E) : Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

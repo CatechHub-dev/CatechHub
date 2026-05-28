@@ -1,0 +1,226 @@
+import 'package:flutter/material.dart';
+
+class LicensesPage extends StatelessWidget {
+  const LicensesPage({super.key});
+
+  static const appLicense = 'MIT License';
+
+  static const List<Map<String, String>> dependencies = [
+    {'name': 'flutter', 'version': 'SDK', 'license': 'BSD-3-Clause'},
+    {
+      'name': 'flutter_localizations',
+      'version': 'SDK',
+      'license': 'BSD-3-Clause',
+    },
+    {'name': 'flutter_riverpod', 'version': '^2.6.1', 'license': 'MIT'},
+    {'name': 'go_router', 'version': '^17.2.3', 'license': 'Apache-2.0'},
+    {'name': 'local_auth', 'version': '^3.0.1', 'license': 'BSD-3-Clause'},
+    {'name': 'hive_flutter', 'version': '^1.1.0', 'license': 'Apache-2.0'},
+    {
+      'name': 'flutter_secure_storage',
+      'version': '^10.3.1',
+      'license': 'BSD-3-Clause',
+    },
+    {'name': 'crypto', 'version': '^3.0.3', 'license': 'BSD-3-Clause'},
+    {'name': 'encrypt', 'version': '^5.0.3', 'license': 'BSD-3-Clause'},
+    {
+      'name': 'file_picker',
+      'version': '^12.0.0-beta.4',
+      'license': 'BSD-3-Clause',
+    },
+    {'name': 'archive', 'version': '^4.0.9', 'license': 'BSD-3-Clause'},
+    {'name': 'qr_flutter', 'version': '^4.1.0', 'license': 'MIT'},
+    {'name': 'mobile_scanner', 'version': '^7.2.0', 'license': 'BSD-3-Clause'},
+    {'name': 'intl', 'version': '^0.20.2', 'license': 'BSD-3-Clause'},
+    {'name': 'url_launcher', 'version': '^6.3.0', 'license': 'BSD-3-Clause'},
+    {'name': 'http', 'version': '^1.2.0', 'license': 'BSD-3-Clause'},
+    {
+      'name': 'package_info_plus',
+      'version': '^10.1.0',
+      'license': 'BSD-3-Clause',
+    },
+    {
+      'name': 'device_info_plus',
+      'version': '^13.1.0',
+      'license': 'BSD-3-Clause',
+    },
+    {
+      'name': 'permission_handler',
+      'version': '^12.0.1',
+      'license': 'BSD-3-Clause',
+    },
+    {
+      'name': 'flutter_local_notifications',
+      'version': '^21.0.0',
+      'license': 'BSD-3-Clause',
+    },
+    {'name': 'pdf', 'version': '^3.10.8', 'license': 'MIT'},
+    {'name': 'printing', 'version': '^5.11.0', 'license': 'BSD-3-Clause'},
+    {'name': 'cupertino_icons', 'version': '^1.0.8', 'license': 'MIT'},
+    {'name': 'collection', 'version': '^1.18.0', 'license': 'BSD-3-Clause'},
+    {'name': 'wiredash', 'version': '^2.6.1', 'license': 'MIT'},
+    {'name': 'image_picker', 'version': '^1.1.0', 'license': 'BSD-3-Clause'},
+    {'name': 'path_provider', 'version': '^2.1.0', 'license': 'BSD-3-Clause'},
+    {'name': 'image', 'version': '^4.3.0', 'license': 'BSD-3-Clause'},
+    {'name': 'open_filex', 'version': '^4.5.0', 'license': 'MIT'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Informazioni e Licenze'),
+        backgroundColor: const Color(0xFF174A7E),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Licenza dell\'app',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Questa app è distribuita sotto la licenza MIT. '
+                  'È rilasciata come software open source e può essere usata liberamente, '
+                  'a condizione di mantenere il copyright e la licenza nei file sorgente. '
+                  'Per usi non commerciali, consulta le condizioni aggiuntive fornite con il codice sorgente.',
+                  style: TextStyle(fontSize: 14, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MIT License (testo breve)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Copyright (c) 2026 CatechHub-dev. '
+                  'Permission is hereby granted, free of charge, to any person obtaining a copy '
+                  'of this software and associated documentation files (the "Software"), to deal '
+                  'in the Software without restriction, including without limitation the rights '
+                  'to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies '
+                  'of the Software, subject to the following conditions: the above copyright notice '
+                  'and this permission notice shall be included in all copies or substantial portions '
+                  'of the Software.',
+                  style: TextStyle(fontSize: 14, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Dipendenze runtime',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 14),
+          ...dependencies.map((dependency) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dependency['name']!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Versione: ${dependency['version']}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      dependency['license']!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF174A7E),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          const SizedBox(height: 24),
+          const Text(
+            'Nota di conformità',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Questo elenco riporta le licenze principali delle dipendenze usate. '
+            'Verifica sempre la licenza specifica dei pacchetti su pub.dev o sul repository ufficiale prima di riutilizzare o distribuire il codice. '
+            'Nel contesto non commerciale e open source, rispetta i termini di ciascuna licenza e conserva gli avvisi di copyright.',
+            style: TextStyle(fontSize: 14, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}

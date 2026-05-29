@@ -11,11 +11,16 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // Do not enforce secure screenshot policy at startup; respect the
+        // value requested from Dart via the method channel. By default we
+        // allow screenshots unless the app explicitly requests otherwise.
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, securityChannel)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "setSecureFlag" -> {
-                        val enabled = call.argument<Boolean>("enabled") ?: false
+                        val requested = call.argument<Boolean>("enabled") ?: false
+                        val enabled = requested
                         runOnUiThread {
                             if (enabled) {
                                 window.setFlags(

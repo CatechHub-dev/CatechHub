@@ -122,4 +122,14 @@ class AttachmentsRepository {
       await deleteAttachment(item.id);
     }
   }
+
+  Future<void> updateAttachmentName({
+    required String attachmentId,
+    required String name,
+  }) async {
+    final data = _box.get(attachmentId) as Map<String, dynamic>?;
+    if (data == null) return;
+    data['name'] = name;
+    await _box.put(attachmentId, data);
+  }
 }

@@ -43,20 +43,24 @@
     }
     </script>
 </head>
-<body>
+<body class="home-page">
     <!-- Navigation -->
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
-                <img src="logo.png" alt="CatechHub Logo" class="nav-logo">
-                <span>CatechHub</span>
+                <a href="index.html#home" class="nav-brand-link">
+                    <img src="logo.png" alt="CatechHub Logo" class="nav-logo">
+                    <span>CatechHub</span>
+                </a>
             </div>
-            <ul class="nav-menu">
-                <li><a href="index.html" class="nav-link active">Home</a></li>
-                <li><a href="technical.html" class="nav-link">Tecnico</a></li>
-                <li><a href="#benefits" class="nav-link">Vantaggi</a></li>
-                <li><a href="#download" class="nav-link">Download</a></li>
-                <li><a href="#faq" class="nav-link">FAQ</a></li>
+            <ul class="nav-menu home-nav-menu" aria-label="Navigazione principale">
+                <li><a href="https://catechhub-dev.github.io/CatechHub/#home" class="nav-link"><i class="fas fa-house"></i><span>Home</span></a></li>
+                <li><a href="https://catechhub-dev.github.io/CatechHub/technical.html" class="nav-link"><i class="fas fa-screwdriver-wrench"></i><span>Tecnico</span></a></li>
+                <li><a href="https://catechhub-dev.github.io/CatechHub/#features" class="nav-link"><i class="fas fa-star"></i><span>Vantaggi</span></a></li>
+                <li><a href="https://catechhub-dev.github.io/CatechHub/app-in-action.html" class="nav-link"><i class="fas fa-mobile-screen-button"></i><span>Demo app</span></a></li>
+                <li><a href="https://catechhub-dev.github.io/CatechHub/#guide" class="nav-link"><i class="fas fa-circle-question"></i><span>FAQ</span></a></li>
+                <li><a href="https://catechhub-dev.github.io/CatechHub/developer.html" class="nav-link"><i class="fas fa-user"></i><span>Sviluppatore</span></a></li>
+                <li><a href="https://catechhub-dev.github.io/CatechHub/#download" class="nav-link nav-link-cta"><i class="fas fa-download"></i><span>Download</span></a></li>
             </ul>
             <div class="hamburger">
                 <span></span>
@@ -77,15 +81,15 @@
                 </h1>
                 <p class="hero-subtitle">Il tuo registro di catechismo, sempre con te!</p>
                 <p class="hero-description">
-                    Gestisci il tuo gruppo di catechismo in modo semplice, sicuro e completamente offline.
-                    Niente più cartelle, post-it e fogli di carta, tutto sul tuo smartphone!
+                    CatechHub sostituisce quaderni sparsi, fogli Excel e note volanti con un registro digitale protetto.
+                    Dati crittografati, accesso con PIN o biometria e gestione offline totale: fidati del tuo dispositivo, non del cloud.
                 </p>
                 <div class="hero-buttons">
                     <a href="#download" class="btn btn-primary">
-                        <i class="fab fa-google-play"></i>
-                        Scarica ora
+                        <i class="fas fa-download"></i>
+                        Scarica APK sicuro
                     </a>
-                    <a href="#benefits" class="btn btn-secondary">
+                    <a href="#features" class="btn btn-secondary">
                         <i class="fas fa-info-circle"></i>
                         Scopri di più
                     </a>
@@ -97,11 +101,11 @@
                     </div>
                     <div class="hero-feature">
                         <i class="fas fa-shield-alt"></i>
-                        <span>Dati Sicuri</span>
+                        <span>Privacy Totale</span>
                     </div>
                     <div class="hero-feature">
                         <i class="fas fa-fingerprint"></i>
-                        <span>Biometria</span>
+                        <span>PIN + Biometria</span>
                     </div>
                 </div>
             </div>
@@ -180,7 +184,7 @@
                         <i class="fas fa-lock"></i>
                     </div>
                     <h3>Sicurezza Totale</h3>
-                    <p>PIN personalizzabile, sblocco biometrico e crittografia dei dati. I TUOI dati rimangono solo sul TUO device.</p>
+                    <p>Dati salvati solo sul dispositivo con crittografia AES-256, PIN hashato tramite PBKDF2-HMAC-SHA256 e sblocco biometrico opzionale.</p>
                 </div>
 
                 <!-- Feature 8 -->
@@ -227,9 +231,9 @@
                     <div class="guide-number">01</div>
                     <div class="guide-content">
                         <h3>Configurazione Iniziale</h3>
-                        <p>Al primo avvio, configura il tuo PIN di sicurezza e imposta le preferenze di privacy. Puoi anche attivare l'autenticazione biometrica per un accesso ancora più rapido.</p>
+                        <p>Al primo avvio configura il PIN locale e imposta le preferenze di privacy. I dati restano sul telefono e il PIN viene salvato solo come hash sicuro.</p>
                         <div class="guide-tips">
-                            <span class="guide-tip"><i class="fas fa-lightbulb"></i> Scegli un PIN che ricordi ma che non sia ovvio</span>
+                            <span class="guide-tip"><i class="fas fa-lightbulb"></i> Usa un PIN personale e attiva la biometria se disponibile</span>
                         </div>
                     </div>
                 </div>
@@ -288,9 +292,9 @@
                     <div class="guide-number">06</div>
                     <div class="guide-content">
                         <h3>Backup e Sicurezza</h3>
-                        <p>Esegui backup regolari dei tuoi dati esportandoli in formato JSON. I dati sono criptati localmente e protetti da PIN o biometria. Attiva le opzioni di privacy per il controllo dello schermo.</p>
+                        <p>Esegui backup regolari dei tuoi dati esportandoli in JSON cifrato. I backup restano locali, protetti da PIN o biometria, e non vengono mai inviati a servizi esterni.</p>
                         <div class="guide-tips">
-                            <span class="guide-tip"><i class="fas fa-lightbulb"></i> Fai backup prima di aggiornamenti o cambiamenti importanti, seguendo le eventuali indicazioni degli aggiornamenti</span>
+                            <span class="guide-tip"><i class="fas fa-lightbulb"></i> Fai backup prima di aggiornamenti importanti e conserva il file in un posto sicuro</span>
                         </div>
                     </div>
                 </div>
@@ -320,6 +324,7 @@
                         </a>
                     </div>
                 </div>
+                <p class="download-note">Open source e verificabile: scarica l'APK dalla repository ufficiale e mantieni il controllo totale sui tuoi dati.</p>
 
                 <div class="installation-guide">
                     <h4><i class="fas fa-info-circle"></i> Come installare da fonti sconosciute</h4>
@@ -400,6 +405,15 @@
 
                 <div class="info-card">
                     <div class="info-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Sviluppatore</h3>
+                    <p>Scopri chi ha creato CatechHub: background, motivazioni e come contribuire.</p>
+                    <a href="developer.html" class="btn btn-secondary">Leggi di più</a>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">
                         <i class="fas fa-heart"></i>
                     </div>
                     <h3>Gratuito</h3>
@@ -416,7 +430,7 @@
                         <i class="fas fa-chevron-down"></i>
                     </div>
                     <div class="faq-answer">
-                        <p>Assolutamente sì! Tutti i dati sono criptati e memorizzati localmente sul tuo dispositivo. L'app richiede PIN o biometria per l'accesso. I dati non vengono mai inviati a server esterni.</p>
+                        <p>Assolutamente sì! Tutti i dati sono criptati con AES-256 e memorizzati localmente. Il PIN è hashato con PBKDF2-HMAC-SHA256 e la biometria usa il sistema nativo del dispositivo. Nessun dato pastorale viene inviato a server esterni.</p>
                     </div>
                 </div>
 
@@ -561,5 +575,6 @@
         // Fetch version on page load
         document.addEventListener('DOMContentLoaded', fetchLatestVersion);
     </script>
+        <script src="nav.js"></script>
 </body>
 </html>

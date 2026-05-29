@@ -28,8 +28,8 @@ class PrivacySettings {
 
 final privacySettingsProvider =
     StateNotifierProvider<PrivacySettingsNotifier, PrivacySettings>(
-  (ref) => PrivacySettingsNotifier(),
-);
+      (ref) => PrivacySettingsNotifier(),
+    );
 
 class PrivacySettingsNotifier extends StateNotifier<PrivacySettings> {
   PrivacySettingsNotifier() : super(loadFromStorage());
@@ -37,13 +37,19 @@ class PrivacySettingsNotifier extends StateNotifier<PrivacySettings> {
   static PrivacySettings loadFromStorage() {
     final box = LocalDatabase.auth();
     return PrivacySettings(
-      lockOnBackground: box.get('privacy_lock_on_background', defaultValue: true),
-      blockScreenshots:
-          box.get('privacy_block_screenshots', defaultValue: true),
-      checkUpdatesOnStart:
-          box.get('privacy_check_updates', defaultValue: true),
-      allowRemoteFeedback:
-          box.get('privacy_allow_feedback', defaultValue: true),
+      lockOnBackground: box.get(
+        'privacy_lock_on_background',
+        defaultValue: true,
+      ),
+      blockScreenshots: box.get(
+        'privacy_block_screenshots',
+        defaultValue: true,
+      ),
+      checkUpdatesOnStart: box.get('privacy_check_updates', defaultValue: true),
+      allowRemoteFeedback: box.get(
+        'privacy_allow_feedback',
+        defaultValue: true,
+      ),
     );
   }
 

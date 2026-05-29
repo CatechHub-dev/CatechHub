@@ -70,6 +70,8 @@ class MyApp extends ConsumerWidget {
       });
     }
 
+    final isLoginRoute =
+        router.routeInformationProvider.value.uri.path.startsWith('/login');
     Widget app = MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -89,7 +91,16 @@ class MyApp extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const _LoadingScreen(),
+        loading: () => isLoginRoute
+            ? BackButtonHandler(
+                router: router,
+                child: Router(
+                  routerDelegate: router.routerDelegate,
+                  routeInformationParser: router.routeInformationParser,
+                  routeInformationProvider: router.routeInformationProvider,
+                ),
+              )
+            : const _LoadingScreen(),
         error: (err, _) => _ErrorScreen(message: 'Errore Auth: $err'),
       ),
     );

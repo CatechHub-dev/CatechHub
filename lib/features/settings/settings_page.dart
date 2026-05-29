@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wiredash/wiredash.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/security/privacy_settings.dart';
@@ -99,8 +101,7 @@ class SettingsPage extends ConsumerWidget {
             },
           ),
 
-          const SizedBox(height: 12),
-
+          // 'Consiglia l'app' moved later before Logout
           _SettingsItem(
             icon: Icons.password_rounded,
             title: 'Cambia PIN',
@@ -171,6 +172,20 @@ class SettingsPage extends ConsumerWidget {
 
           const SizedBox(height: 30),
 
+          _SettingsItem(
+            icon: Icons.recommend_rounded,
+            title: 'Consiglia l\'app',
+            subtitle: 'Condividi un messaggio per consigliare l\'app',
+            color: Colors.indigo,
+            onTap: () {
+              final shareText =
+                  'Ehi! Prova CatechHub — il registro smart per i catechisti. Scopri di più su GitHub: https://github.com/CatechHub-dev/CatechHub';
+              Share.share(shareText);
+            },
+          ),
+
+          const SizedBox(height: 30),
+
           /// =========================
           /// LOGOUT
           /// =========================
@@ -187,8 +202,38 @@ class SettingsPage extends ConsumerWidget {
               }
             },
           ),
+
+          const SizedBox(height: 28),
+
+          const _AppVersionLabel(),
         ],
       ),
+    );
+  }
+}
+
+class _AppVersionLabel extends StatelessWidget {
+  const _AppVersionLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final version = snapshot.data?.version;
+        final label = version == null ? 'CatechHub' : 'CatechHub v$version';
+
+        return Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -5,6 +5,29 @@ class LicensesPage extends StatelessWidget {
 
   static const appLicense = 'MIT License';
 
+  static const String licenseText = '''MIT License
+
+Copyright (c) 2026 CatechHub
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+''';
+
   static const List<Map<String, String>> dependencies = [
     {'name': 'flutter', 'version': 'SDK', 'license': 'BSD-3-Clause'},
     {
@@ -94,54 +117,15 @@ class LicensesPage extends StatelessWidget {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   'Licenza dell\'app',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
-                  'Questa app è distribuita sotto la licenza MIT. '
-                  'È rilasciata come software open source e può essere usata liberamente, '
-                  'a condizione di mantenere il copyright e la licenza nei file sorgente. '
-                  'Per usi non commerciali, consulta le condizioni aggiuntive fornite con il codice sorgente.',
-                  style: TextStyle(fontSize: 14, height: 1.5),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 14,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MIT License (testo breve)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Copyright (c) 2026 CatechHub-dev. '
-                  'Permission is hereby granted, free of charge, to any person obtaining a copy '
-                  'of this software and associated documentation files (the "Software"), to deal '
-                  'in the Software without restriction, including without limitation the rights '
-                  'to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies '
-                  'of the Software, subject to the following conditions: the above copyright notice '
-                  'and this permission notice shall be included in all copies or substantial portions '
-                  'of the Software.',
-                  style: TextStyle(fontSize: 14, height: 1.5),
+                  licenseText,
+                  style: const TextStyle(fontSize: 14, height: 1.5),
                 ),
               ],
             ),
@@ -152,47 +136,37 @@ class LicensesPage extends StatelessWidget {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 14),
-          ...dependencies.map((dependency) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          dependency['name']!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Versione: ${dependency['version']}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              children: dependencies.map((dependency) {
+                return ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  title: Text(
+                    dependency['name']!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Container(
+                  subtitle: Text(
+                    'Versione: ${dependency['version']}',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  trailing: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       dependency['license']!,
@@ -203,10 +177,10 @@ class LicensesPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
-              ),
-            );
-          }).toList(),
+                );
+              }).toList(),
+            ),
+          ),
           const SizedBox(height: 24),
           const Text(
             'Nota di conformità',

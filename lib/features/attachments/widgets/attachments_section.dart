@@ -25,10 +25,7 @@ class AttachmentsSection extends ConsumerWidget {
     final repo = ref.watch(attachmentsRepositoryProvider);
 
     return StreamBuilder<List<Attachment>>(
-      stream: repo.watchForParent(
-        parentId: parentId,
-        parentType: parentType,
-      ),
+      stream: repo.watchForParent(parentId: parentId, parentType: parentType),
       builder: (context, snapshot) {
         final attachments = snapshot.data ?? [];
 
@@ -51,7 +48,11 @@ class AttachmentsSection extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.lock_rounded, color: Color(0xFF174A7E), size: 20),
+                  const Icon(
+                    Icons.lock_rounded,
+                    color: Color(0xFF174A7E),
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -150,9 +151,9 @@ class AttachmentsSection extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     }
   }
@@ -185,11 +186,13 @@ class AttachmentsSection extends ConsumerWidget {
     if (file == null) return;
 
     // Genera un nome appropriato per il file
-    String fileName = file.name.isNotEmpty ? file.name : 'file_${DateTime.now().millisecondsSinceEpoch}';
-    
+    String fileName = file.name.isNotEmpty
+        ? file.name
+        : 'file_${DateTime.now().millisecondsSinceEpoch}';
+
     // Chiedi all'utente di confermare o modificare il nome
     final finalName = await _askForFileName(context, fileName);
-    
+
     final repo = ref.read(attachmentsRepositoryProvider);
     final saved = await repo.addFromPath(
       parentId: parentId,
@@ -229,23 +232,26 @@ class AttachmentsSection extends ConsumerWidget {
             mimeType: 'application/pdf',
           )
         : file.bytes != null
-            ? await repo.addFromBytes(
-                parentId: parentId,
-                parentType: parentType,
-                name: finalName,
-                mimeType: 'application/pdf',
-                bytes: file.bytes!,
-              )
-            : throw Exception('Impossibile leggere il PDF selezionato');
+        ? await repo.addFromBytes(
+            parentId: parentId,
+            parentType: parentType,
+            name: finalName,
+            mimeType: 'application/pdf',
+            bytes: file.bytes!,
+          )
+        : throw Exception('Impossibile leggere il PDF selezionato');
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_savedMessage(saved.size, 'PDF'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_savedMessage(saved.size, 'PDF'))));
     }
   }
 
-  Future<String> _askForFileName(BuildContext context, String defaultName) async {
+  Future<String> _askForFileName(
+    BuildContext context,
+    String defaultName,
+  ) async {
     final controller = TextEditingController(text: defaultName);
     final result = await showDialog<String>(
       context: context,
@@ -286,9 +292,7 @@ class AttachmentsSection extends ConsumerWidget {
         title: const Text('Rinomina allegato'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Nuovo nome del file',
-          ),
+          decoration: const InputDecoration(hintText: 'Nuovo nome del file'),
           autofocus: true,
         ),
         actions: [
@@ -305,15 +309,31 @@ class AttachmentsSection extends ConsumerWidget {
     );
     controller.dispose();
 
-    if (result != null && result.trim().isNotEmpty && result != att.name) {
-      // Implementare la rinomina nel repository se necessario
-      // Per ora, mostriamo solo un messaggio
+    final newName = result?.trim();
+    if (newName != null && newName.isNotEmpty && newName != att.name) {
+      final preservedName = _preserveExtension(att.name, newName);
+      await ref
+          .read(attachmentsRepositoryProvider)
+          .updateAttachmentName(attachmentId: att.id, name: preservedName);
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Funzionalità di rinomina in arrivo')),
+          SnackBar(content: Text('Nome aggiornato in "$preservedName"')),
         );
       }
     }
+  }
+
+  String _preserveExtension(String originalName, String newName) {
+    final originalIndex = originalName.lastIndexOf('.');
+    if (originalIndex < 0) return newName;
+
+    final originalExtension = originalName.substring(originalIndex);
+    final newIndex = newName.lastIndexOf('.');
+    final baseName = newIndex >= 0 ? newName.substring(0, newIndex) : newName;
+    final sanitized = baseName.trim();
+
+    return '$sanitized$originalExtension';
   }
 
   String _savedMessage(int bytes, String type) {
@@ -360,9 +380,9 @@ class AttachmentsSection extends ConsumerWidget {
 
     await ref.read(attachmentsRepositoryProvider).deleteAttachment(att.id);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Allegato eliminato')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Allegato eliminato')));
     }
   }
 }
@@ -385,8 +405,8 @@ class _AttachmentTile extends StatelessWidget {
     final icon = attachment.isImage
         ? Icons.image_rounded
         : attachment.isPdf
-            ? Icons.picture_as_pdf_rounded
-            : Icons.insert_drive_file_rounded;
+        ? Icons.picture_as_pdf_rounded
+        : Icons.insert_drive_file_rounded;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

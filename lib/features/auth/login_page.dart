@@ -46,20 +46,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       final canCheckBiometrics = await _localAuth.canCheckBiometrics;
-      debugPrint('Login initState - Device supportato: $isDeviceSupported, Can check: $canCheckBiometrics');
+      debugPrint(
+        'Login initState - Device supportato: $isDeviceSupported, Can check: $canCheckBiometrics',
+      );
 
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
-      debugPrint('Login initState - Biometriche disponibili: $availableBiometrics');
+      debugPrint(
+        'Login initState - Biometriche disponibili: $availableBiometrics',
+      );
 
-      final canBiometric = isDeviceSupported && canCheckBiometrics && availableBiometrics.isNotEmpty;
+      final canBiometric =
+          isDeviceSupported &&
+          canCheckBiometrics &&
+          availableBiometrics.isNotEmpty;
 
       if (mounted) {
         setState(() {
           _isFirstSetup = !isConfigured;
           _biometricAvailable = canBiometric && isConfigured;
-          debugPrint('Login initState - Biometrica disponibile: $_biometricAvailable');
+          debugPrint(
+            'Login initState - Biometrica disponibile: $_biometricAvailable',
+          );
           if (_biometricAvailable) {
-            debugPrint('Login initState - Avvio autenticazione biometrica automatica');
+            debugPrint(
+              'Login initState - Avvio autenticazione biometrica automatica',
+            );
             _authenticateWithBiometrics();
           }
         });
@@ -129,20 +140,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final groupName = _groupController.text.trim();
 
       try {
-        final ok = await auth.setupAndUnlock(
-          pin,
-          firstName: firstName,
-          lastName: lastName,
-          groupName: groupName,
-        ).timeout(
-          const Duration(seconds: 15),
-          onTimeout: () async {
-            if (mounted) {
-              setState(() => _errorMessage = "Timeout: controlla la connessione");
-            }
-            return false;
-          },
-        );
+        final ok = await auth
+            .setupAndUnlock(
+              pin,
+              firstName: firstName,
+              lastName: lastName,
+              groupName: groupName,
+            )
+            .timeout(
+              const Duration(seconds: 15),
+              onTimeout: () async {
+                if (mounted) {
+                  setState(
+                    () => _errorMessage = "Timeout: controlla la connessione",
+                  );
+                }
+                return false;
+              },
+            );
 
         if (!ok && mounted) {
           setState(
@@ -151,7 +166,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
       } catch (e) {
         if (mounted) {
-          setState(() => _errorMessage = "Errore: riprova");
+          setState(
+            () => _errorMessage =
+                "Errore durante la creazione del profilo: ${e.toString()}",
+          );
           debugPrint('Setup error: $e');
         }
       }
@@ -160,15 +178,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
 
     try {
-      final ok = await auth.unlock(pin).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () async {
-          if (mounted) {
-            setState(() => _errorMessage = "Timeout: controlla la connessione");
-          }
-          return false;
-        },
-      );
+      final ok = await auth
+          .unlock(pin)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () async {
+              if (mounted) {
+                setState(
+                  () => _errorMessage = "Timeout: controlla la connessione",
+                );
+              }
+              return false;
+            },
+          );
 
       if (!ok && mounted) {
         setState(() {
@@ -203,6 +225,40 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final isLoading = authState.isLoading;
+
+    if (isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFEAF4FF), Color(0xFFD5E8FF), Color(0xFFB9D7FF)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  CircularProgressIndicator(strokeWidth: 3),
+                  SizedBox(height: 18),
+                  Text(
+                    'Caricamento in corso... attendi qualche secondo',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF174A7E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Container(
@@ -266,9 +322,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           const Column(
                             children: [
                               SizedBox(height: 8),
-                              CircularProgressIndicator(
-                                strokeWidth: 3,
-                              ),
+                              CircularProgressIndicator(strokeWidth: 3),
                               SizedBox(height: 16),
                               Text(
                                 "Verifica in corso...",
@@ -285,8 +339,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             _buildFirstSetupForm()
                           else
                             _buildPinConfirmationForm(),
-                        ]
-                        else ...[
+                        ] else ...[
                           _buildLoginForm(),
                         ],
 
@@ -345,7 +398,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: Container(height: 1, color: Colors.grey.shade300)),
+              Expanded(
+                child: Container(height: 1, color: Colors.grey.shade300),
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
@@ -353,7 +408,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
               ),
-              Expanded(child: Container(height: 1, color: Colors.grey.shade300)),
+              Expanded(
+                child: Container(height: 1, color: Colors.grey.shade300),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -408,10 +465,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 13),
                   ),
                 ),
               ],
@@ -498,10 +552,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 13),
                   ),
                 ),
               ],
@@ -555,9 +606,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         else
           const SizedBox(
             height: 60,
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
+            child: Center(child: CircularProgressIndicator()),
           ),
         if (_errorMessage != null) ...[
           const SizedBox(height: 12),
@@ -575,10 +624,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Expanded(
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 13),
                   ),
                 ),
               ],
@@ -605,7 +651,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _errorMessage != null ? Colors.red.shade300 : Colors.grey.shade300,
+          color: _errorMessage != null
+              ? Colors.red.shade300
+              : Colors.grey.shade300,
           width: _errorMessage != null ? 2 : 1,
         ),
       ),
@@ -624,9 +672,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 letterSpacing: 4,
                 fontWeight: FontWeight.bold,
               ),
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 counterText: "",
                 border: InputBorder.none,

@@ -43,19 +43,21 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         message: 'Inserisci il PIN per proteggere il file di backup.',
       );
       if (pin == null) {
-        setState(() => _isExporting = false);
+        if (mounted) setState(() => _isExporting = false);
         return;
       }
 
-      // Verifica che il PIN sia quello corretto dell'utente
+      // Verifica che il PIN sia quello corretto dell'utente senza sbloccare la sessione
       final authService = ref.read(authServiceProvider);
-      final pinValid = await authService.signInWithPin(pin);
+      final pinValid = await authService.checkPin(pin);
       if (!pinValid) {
-        setState(() {
-          _isExporting = false;
-          _statusMessage = 'PIN non corretto';
-          _isError = true;
-        });
+        if (mounted) {
+          setState(() {
+            _isExporting = false;
+            _statusMessage = 'PIN non corretto';
+            _isError = true;
+          });
+        }
         return;
       }
 
@@ -95,23 +97,31 @@ class _BackupPageState extends ConsumerState<BackupPage> {
             await file.writeAsBytes(bytes, flush: true);
           }
         }
-        setState(() {
-          _statusMessage = 'Backup esportato con successo';
-          _isError = false;
-        });
+        if (mounted) {
+          setState(() {
+            _statusMessage = 'Backup esportato con successo';
+            _isError = false;
+          });
+        }
       } else {
-        setState(() {
-          _statusMessage = 'Esportazione annullata';
-          _isError = false;
-        });
+        if (mounted) {
+          setState(() {
+            _statusMessage = 'Esportazione annullata';
+            _isError = false;
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _statusMessage = 'Errore durante l\'esportazione: $e';
-        _isError = true;
-      });
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Errore durante l\'esportazione: $e';
+          _isError = true;
+        });
+      }
     } finally {
-      setState(() => _isExporting = false);
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
     }
   }
 
@@ -134,7 +144,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         withData: false,
       );
       if (result == null || result.files.isEmpty) {
-        setState(() => _isImporting = false);
+        if (mounted) setState(() => _isImporting = false);
         return;
       }
 
@@ -156,24 +166,26 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         message: 'Inserisci il PIN usato per proteggere questo backup.',
       );
       if (pin == null) {
-        setState(() => _isImporting = false);
+        if (mounted) setState(() => _isImporting = false);
         return;
       }
 
       // Verifica PIN provando a decifrare
       if (!DataExportService.verifyEncryptedPassword(encryptedData, pin)) {
-        setState(() {
-          _isImporting = false;
-          _statusMessage = 'PIN non corretto o file non valido';
-          _isError = true;
-        });
+        if (mounted) {
+          setState(() {
+            _isImporting = false;
+            _statusMessage = 'PIN non corretto o file non valido';
+            _isError = true;
+          });
+        }
         return;
       }
 
       // Conferma sovrascrittura
       final confirm = await _showConfirmDialog();
       if (confirm != true) {
-        setState(() => _isImporting = false);
+        if (mounted) setState(() => _isImporting = false);
         return;
       }
 
@@ -188,12 +200,16 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         _showSuccessDialog();
       }
     } catch (e) {
-      setState(() {
-        _statusMessage = 'Errore durante l\'importazione: $e';
-        _isError = true;
-      });
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Errore durante l\'importazione: $e';
+          _isError = true;
+        });
+      }
     } finally {
-      setState(() => _isImporting = false);
+      if (mounted) {
+        setState(() => _isImporting = false);
+      }
     }
   }
 

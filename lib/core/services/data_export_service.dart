@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:hive/hive.dart';
+
 import '../storage/encrypted_file_storage.dart';
 import '../storage/local_database.dart';
 import '../../shared/models/student_model.dart';
@@ -154,7 +156,7 @@ class DataExportService {
     return {'attachments': attachmentsWithData, 'parentType': parentType};
   }
 
-  // Importa dati ricevuti sostituendo quelli esistenti
+  // Importa dati ricevuti facendo merge con quelli esistenti
   static Future<void> importData(Map<String, dynamic> receivedData) async {
     // Importa anagrafica
     if (receivedData.containsKey('anagrafica')) {
@@ -197,111 +199,96 @@ class DataExportService {
     }
   }
 
-  // Importa anagrafica
-  static Future<void> _importAnagrafica(
-    Map<String, dynamic> anagraficaData,
-  ) async {
-    final studentsBox = LocalDatabase.students();
-    final classesBox = LocalDatabase.classes();
+  static Map<String, dynamic> _mergeMaps(
+    Map<String, dynamic> localData,
+    Map<String, dynamic> incomingData,
+  ) {
+    final merged = Map<String, dynamic>.from(localData);
 
-    // Svuota box esistenti
-    await studentsBox.clear();
-    await classesBox.clear();
+    for (final entry in incomingData.entries) {
+      final key = entry.key;
+      if (key == 'id') continue;
 
-    // Importa studenti
-    final students = anagraficaData['students'] as List<dynamic>?;
-    if (students != null) {
-      for (final studentData in students) {
-        final studentMap = studentData as Map<String, dynamic>;
-        final id =
-            studentMap['id'] as String? ?? LocalDatabase.newId('student');
-        await studentsBox.put(id, studentMap);
+      final value = entry.value;
+      if (value == null) continue;
+
+      if (merged[key] != value) {
+        merged[key] = value;
       }
     }
 
-    // Importa classi
-    final classes = anagraficaData['classes'] as List<dynamic>?;
-    if (classes != null) {
-      for (final classData in classes) {
-        final classMap = classData as Map<String, dynamic>;
-        final id = classMap['id'] as String? ?? LocalDatabase.newId('class');
-        await classesBox.put(id, classMap);
+    return merged;
+  }
+
+  static Future<void> _mergeBoxRecords(
+    Box<Map> box,
+    List<dynamic>? incomingItems,
+  ) async {
+    if (incomingItems == null) return;
+
+    for (final item in incomingItems) {
+      final record = Map<String, dynamic>.from(item as Map);
+      final id = record.remove('id') as String? ?? LocalDatabase.newId();
+      final existing = LocalDatabase.toStringDynamicMap(box.get(id));
+
+      if (existing.isEmpty) {
+        await box.put(id, record);
+        continue;
+      }
+
+      final merged = _mergeMaps(existing, record);
+      if (merged.toString() != existing.toString()) {
+        await box.put(id, merged);
       }
     }
   }
 
+  // Importa anagrafica
+  static Future<void> _importAnagrafica(
+    Map<String, dynamic> anagraficaData,
+  ) async {
+    await _mergeBoxRecords(
+      LocalDatabase.students(),
+      anagraficaData['students'] as List<dynamic>?,
+    );
+
+    await _mergeBoxRecords(
+      LocalDatabase.classes(),
+      anagraficaData['classes'] as List<dynamic>?,
+    );
+  }
+
   // Importa agenda
   static Future<void> _importAgenda(Map<String, dynamic> agendaData) async {
-    final attendanceBox = LocalDatabase.attendance();
-
-    // Svuota box esistente
-    await attendanceBox.clear();
-
-    // Importa presenze
-    final attendance = agendaData['attendance'] as List<dynamic>?;
-    if (attendance != null) {
-      for (final attendanceData in attendance) {
-        final attendanceMap = attendanceData as Map<String, dynamic>;
-        final id =
-            attendanceMap['id'] as String? ?? LocalDatabase.newId('attendance');
-        await attendanceBox.put(id, attendanceMap);
-      }
-    }
+    await _mergeBoxRecords(
+      LocalDatabase.attendance(),
+      agendaData['attendance'] as List<dynamic>?,
+    );
   }
 
   // Importa programmazione
   static Future<void> _importProgrammazione(
     Map<String, dynamic> programmazioneData,
   ) async {
-    final planningBox = LocalDatabase.planning();
-
-    // Svuota box esistente
-    await planningBox.clear();
-
-    // Importa planning
-    final planning = programmazioneData['planning'] as List<dynamic>?;
-    if (planning != null) {
-      for (final planningData in planning) {
-        final planningMap = planningData as Map<String, dynamic>;
-        final id =
-            planningMap['id'] as String? ?? LocalDatabase.newId('planning');
-        await planningBox.put(id, planningMap);
-      }
-    }
+    await _mergeBoxRecords(
+      LocalDatabase.planning(),
+      programmazioneData['planning'] as List<dynamic>?,
+    );
   }
 
   // Importa documenti
   static Future<void> _importDocumenti(
     Map<String, dynamic> documentiData,
   ) async {
-    final documentsBox = LocalDatabase.documents();
-    final deliveriesBox = LocalDatabase.documentDeliveries();
+    await _mergeBoxRecords(
+      LocalDatabase.documents(),
+      documentiData['documents'] as List<dynamic>?,
+    );
 
-    // Svuota box esistenti
-    await documentsBox.clear();
-    await deliveriesBox.clear();
-
-    // Importa documenti
-    final documents = documentiData['documents'] as List<dynamic>?;
-    if (documents != null) {
-      for (final documentData in documents) {
-        final documentMap = documentData as Map<String, dynamic>;
-        final id =
-            documentMap['id'] as String? ?? LocalDatabase.newId('document');
-        await documentsBox.put(id, documentMap);
-      }
-    }
-
-    // Importa consegne
-    final deliveries = documentiData['deliveries'] as List<dynamic>?;
-    if (deliveries != null) {
-      for (final deliveryData in deliveries) {
-        final deliveryMap = deliveryData as Map<String, dynamic>;
-        final id =
-            deliveryMap['id'] as String? ?? LocalDatabase.newId('delivery');
-        await deliveriesBox.put(id, deliveryMap);
-      }
-    }
+    await _mergeBoxRecords(
+      LocalDatabase.documentDeliveries(),
+      documentiData['deliveries'] as List<dynamic>?,
+    );
   }
 
   // Importa allegati per tipo specifico
@@ -310,37 +297,68 @@ class DataExportService {
     String parentType,
   ) async {
     final attachmentsBox = LocalDatabase.attachments();
+    final incomingAttachments = allegatiData['attachments'] as List<dynamic>?;
 
-    // Rimuovi solo gli allegati del tipo specificato (inclusi i file su disco)
-    final allAttachments = LocalDatabase.values(
-      LocalDatabase.attachments(),
-      (id, data) => Attachment.fromMap(id, data),
-    );
+    if (incomingAttachments == null) return;
 
-    for (final attachment in allAttachments) {
-      if (attachment.parentType == parentType) {
-        await EncryptedFileStorage.delete(attachment.id);
-        await attachmentsBox.delete(attachment.id);
-      }
-    }
+    for (final attachmentData in incomingAttachments) {
+      final attachmentMap = Map<String, dynamic>.from(attachmentData as Map);
+      final id =
+          attachmentMap.remove('id') as String? ??
+          LocalDatabase.newId('attachment');
+      final localRecord = LocalDatabase.toStringDynamicMap(
+        attachmentsBox.get(id),
+      );
+      final localAttachment = localRecord.isEmpty
+          ? null
+          : Attachment.fromMap(id, localRecord);
 
-    // Importa allegati con dati binari
-    final attachments = allegatiData['attachments'] as List<dynamic>?;
-    if (attachments != null) {
-      for (final attachmentData in attachments) {
-        final attachmentMap = Map<String, dynamic>.from(attachmentData as Map);
-        final id =
-            attachmentMap['id'] as String? ?? LocalDatabase.newId('attachment');
+      final fileDataB64 = attachmentMap.remove('fileData') as String?;
+      final incomingCreatedAt =
+          DateTime.tryParse(attachmentMap['createdAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
 
-        // Salva i dati binari nel file storage se presenti
-        final fileDataB64 = attachmentMap.remove('fileData') as String?;
+      if (localAttachment != null) {
         if (fileDataB64 != null && fileDataB64.isNotEmpty) {
-          final fileBytes = Uint8List.fromList(base64Decode(fileDataB64));
-          await EncryptedFileStorage.write(id, fileBytes);
+          if (localAttachment.fileHash == attachmentMap['fileHash']) {
+            // Stesso file, aggiorna solo metadati se necessario.
+            final merged = _mergeMaps(localRecord, attachmentMap);
+            if (merged.toString() != localRecord.toString()) {
+              await attachmentsBox.put(id, merged);
+            }
+            continue;
+          }
+
+          if (incomingCreatedAt.isAfter(localAttachment.createdAt)) {
+            final fileBytes = Uint8List.fromList(base64Decode(fileDataB64));
+            await EncryptedFileStorage.write(id, fileBytes);
+            final merged = _mergeMaps(localRecord, attachmentMap);
+            await attachmentsBox.put(id, merged);
+            continue;
+          }
+
+          // Se il file locale è più recente, conserva il file locale e aggiorna solo i metadati non file.
+          final merged = _mergeMaps(localRecord, attachmentMap);
+          if (merged.toString() != localRecord.toString()) {
+            await attachmentsBox.put(id, merged);
+          }
+          continue;
         }
 
-        await attachmentsBox.put(id, attachmentMap);
+        // Se non ci sono dati binari in arrivo, mantieni il file locale e aggiorna solo metadati.
+        final merged = _mergeMaps(localRecord, attachmentMap);
+        if (merged.toString() != localRecord.toString()) {
+          await attachmentsBox.put(id, merged);
+        }
+        continue;
       }
+
+      // Nuovo allegato in arrivo
+      if (fileDataB64 != null && fileDataB64.isNotEmpty) {
+        final fileBytes = Uint8List.fromList(base64Decode(fileDataB64));
+        await EncryptedFileStorage.write(id, fileBytes);
+      }
+      await attachmentsBox.put(id, attachmentMap);
     }
   }
 
@@ -349,36 +367,64 @@ class DataExportService {
     Map<String, dynamic> allegatiData,
   ) async {
     final attachmentsBox = LocalDatabase.attachments();
+    final incomingAttachments = allegatiData['attachments'] as List<dynamic>?;
 
-    // Elimina file su disco prima di svuotare il box
-    final existingAttachments = LocalDatabase.values(
-      LocalDatabase.attachments(),
-      (id, data) => Attachment.fromMap(id, data),
-    );
-    for (final attachment in existingAttachments) {
-      await EncryptedFileStorage.delete(attachment.id);
-    }
+    if (incomingAttachments == null) return;
 
-    // Svuota box esistente
-    await attachmentsBox.clear();
+    for (final attachmentData in incomingAttachments) {
+      final attachmentMap = Map<String, dynamic>.from(attachmentData as Map);
+      final id =
+          attachmentMap.remove('id') as String? ??
+          LocalDatabase.newId('attachment');
+      final localRecord = LocalDatabase.toStringDynamicMap(
+        attachmentsBox.get(id),
+      );
+      final localAttachment = localRecord.isEmpty
+          ? null
+          : Attachment.fromMap(id, localRecord);
 
-    // Importa allegati con dati binari
-    final attachments = allegatiData['attachments'] as List<dynamic>?;
-    if (attachments != null) {
-      for (final attachmentData in attachments) {
-        final attachmentMap = Map<String, dynamic>.from(attachmentData as Map);
-        final id =
-            attachmentMap['id'] as String? ?? LocalDatabase.newId('attachment');
+      final fileDataB64 = attachmentMap.remove('fileData') as String?;
+      final incomingCreatedAt =
+          DateTime.tryParse(attachmentMap['createdAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
 
-        // Salva i dati binari nel file storage se presenti
-        final fileDataB64 = attachmentMap.remove('fileData') as String?;
+      if (localAttachment != null) {
         if (fileDataB64 != null && fileDataB64.isNotEmpty) {
-          final fileBytes = Uint8List.fromList(base64Decode(fileDataB64));
-          await EncryptedFileStorage.write(id, fileBytes);
+          if (localAttachment.fileHash == attachmentMap['fileHash']) {
+            final merged = _mergeMaps(localRecord, attachmentMap);
+            if (merged.toString() != localRecord.toString()) {
+              await attachmentsBox.put(id, merged);
+            }
+            continue;
+          }
+
+          if (incomingCreatedAt.isAfter(localAttachment.createdAt)) {
+            final fileBytes = Uint8List.fromList(base64Decode(fileDataB64));
+            await EncryptedFileStorage.write(id, fileBytes);
+            final merged = _mergeMaps(localRecord, attachmentMap);
+            await attachmentsBox.put(id, merged);
+            continue;
+          }
+
+          final merged = _mergeMaps(localRecord, attachmentMap);
+          if (merged.toString() != localRecord.toString()) {
+            await attachmentsBox.put(id, merged);
+          }
+          continue;
         }
 
-        await attachmentsBox.put(id, attachmentMap);
+        final merged = _mergeMaps(localRecord, attachmentMap);
+        if (merged.toString() != localRecord.toString()) {
+          await attachmentsBox.put(id, merged);
+        }
+        continue;
       }
+
+      if (fileDataB64 != null && fileDataB64.isNotEmpty) {
+        final fileBytes = Uint8List.fromList(base64Decode(fileDataB64));
+        await EncryptedFileStorage.write(id, fileBytes);
+      }
+      await attachmentsBox.put(id, attachmentMap);
     }
   }
 
@@ -394,18 +440,10 @@ class DataExportService {
 
   // Importa note di contatto
   static Future<void> _importNoteContatto(Map<String, dynamic> noteData) async {
-    final box = LocalDatabase.contactNotes();
-    await box.clear();
-
-    final notes = noteData['notes'] as List<dynamic>?;
-    if (notes != null) {
-      for (final noteItem in notes) {
-        final noteMap = noteItem as Map<String, dynamic>;
-        final id =
-            noteMap['id'] as String? ?? LocalDatabase.newId('contact_note');
-        await box.put(id, noteMap);
-      }
-    }
+    await _mergeBoxRecords(
+      LocalDatabase.contactNotes(),
+      noteData['notes'] as List<dynamic>?,
+    );
   }
 
   // Verifica integrità dei dati ricevuti

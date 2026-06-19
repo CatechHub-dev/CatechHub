@@ -151,7 +151,7 @@
                         <i class="fas fa-database"></i>
                     </div>
                     <h3>Backup e Condivisione Protetti</h3>
-                    <p>I backup JSON sono cifrati e le condivisioni QR sono protette con PIN a 8 cifre e AES-256-GCM, con checksum e validità temporanea.</p>
+                    <p>I backup JSON sono cifrati e le condivisioni BLE sono protette con PIN a 8 cifre e AES-256-GCM, con checksum e validità temporanea. In "Dispositivi associati" entrambi i dispositivi associati vedono l'altro, così la connessione rimane reciproca e riconoscibile.</p>
                 </div>
             </div>
 
@@ -159,7 +159,7 @@
                 <h3><i class="fas fa-info-circle"></i> Dettagli Tecnici</h3>
                 <div class="detail-item">
                     <h4>Crittografia</h4>
-                    <p>La crittografia locale usa AES-256 per Hive e per i file allegati. I backup e le condivisioni QR usano AES-256-GCM, con chiavi derivate tramite PBKDF2-HMAC-SHA256.</p>
+                    <p>La crittografia locale usa AES-256 per Hive e per i file allegati. I backup e le condivisioni BLE usano AES-256-GCM, con chiavi derivate tramite PBKDF2-HMAC-SHA256.</p>
                 </div>
                 <div class="detail-item">
                     <h4>Gestione chiavi</h4>
@@ -171,7 +171,7 @@
                 </div>
                 <div class="detail-item">
                     <h4>Permessi</h4>
-                    <p>L'app richiede solo i permessi strettamente necessari: camera per QR e foto, storage privato per backup e allegati. Non serve posizione e, per default, non usa rete.</p>
+                    <p>L'app richiede solo i permessi strettamente necessari: Bluetooth Low Energy per i dispositivi associati e storage privato per backup e allegati. Non serve posizione e, per default, non usa rete.</p>
                 </div>
             </div>
         </div>
@@ -212,11 +212,11 @@
 
                 <div class="requirements-card">
                     <div class="req-icon">
-                        <i class="fas fa-camera"></i>
+                        <i class="fas fa-bluetooth"></i>
                     </div>
                     <h3>Periferiche</h3>
                     <ul>
-                        <li>Camera (obbligatoria per QR code e foto)</li>
+                        <li>Bluetooth Low Energy per apparati associati</li>
                         <li>Biometria (opzionale ma raccomandata)</li>
                         <li>Touchscreen</li>
                     </ul>
@@ -341,8 +341,8 @@
                             <span>AES-256 / GCM</span>
                         </div>
                         <div class="tech-item">
-                            <i class="fas fa-qrcode"></i>
-                            <span>QR Code Scanner</span>
+                            <i class="fas fa-bluetooth-b"></i>
+                            <span>BLE Pairing</span>
                         </div>
                         <div class="tech-item">
                             <i class="fas fa-file-pdf"></i>

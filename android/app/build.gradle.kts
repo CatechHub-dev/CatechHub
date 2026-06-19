@@ -15,7 +15,7 @@ plugins {
 }
 
 android {
-    namespace = "com.delelimed.registro_catechismo"
+    namespace = "com.delelimed.catechhub"
     
     compileSdk = 36 
     ndkVersion = flutter.ndkVersion

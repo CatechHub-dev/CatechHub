@@ -15,6 +15,8 @@ class LocalDatabase {
   static const documentDeliveriesBox = 'document_deliveries_box';
   static const attachmentsBox = 'attachments_box';
   static const contactNotesBox = 'contact_notes_box';
+  static const pairedDevicesBox = 'paired_devices_box';
+  static const syncLogsBox = 'ble_sync_logs_box';
 
   static const _secureStorage = FlutterSecureStorage();
   static const _encryptionKeyName = 'secure_database_key';
@@ -27,7 +29,9 @@ class LocalDatabase {
 
     await Hive.initFlutter();
 
-    var encryptionKeyString = await _secureStorage.read(key: _encryptionKeyName);
+    var encryptionKeyString = await _secureStorage.read(
+      key: _encryptionKeyName,
+    );
     if (encryptionKeyString == null) {
       final key = Hive.generateSecureKey();
       encryptionKeyString = base64UrlEncode(key);
@@ -49,9 +53,11 @@ class LocalDatabase {
       Hive.openBox<Map>(documentDeliveriesBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(attachmentsBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(contactNotesBox, encryptionCipher: _cipher),
+      Hive.openBox<Map>(pairedDevicesBox, encryptionCipher: _cipher),
+      Hive.openBox<Map>(syncLogsBox, encryptionCipher: _cipher),
     ]);
 
-    // La sessione non va persistita: rimuove eventuali flag legacy.
+    // La sessione non va persistita: rimuove eventuali flag legacy:
     await Hive.box(authBox).delete('isLoggedIn');
 
     _initialized = true;
@@ -66,6 +72,8 @@ class LocalDatabase {
   static Box<Map> documentDeliveries() => Hive.box<Map>(documentDeliveriesBox);
   static Box<Map> attachments() => Hive.box<Map>(attachmentsBox);
   static Box<Map> contactNotes() => Hive.box<Map>(contactNotesBox);
+  static Box<Map> pairedDevices() => Hive.box<Map>(pairedDevicesBox);
+  static Box<Map> syncLogs() => Hive.box<Map>(syncLogsBox);
 
   static Uint8List encryptBytes(Uint8List plain) {
     final out = Uint8List(_cipher.maxEncryptedSize(plain));
@@ -88,7 +96,15 @@ class LocalDatabase {
     T Function(String id, Map<String, dynamic> data) mapper,
   ) async* {
     yield _boxValues(box, mapper);
-    yield* box.watch().map((_) => _boxValues(box, mapper));
+    // OTTIMIZZAZIONE: Usiamo un piccolo delay (throttling) per evitare di ricalcolare la lista
+    // troppe volte al secondo se ci sono molti eventi (es. log BLE)
+    var lastUpdate = DateTime.now();
+    await for (final _ in box.watch()) {
+      if (DateTime.now().difference(lastUpdate) > const Duration(milliseconds: 500)) {
+        yield _boxValues(box, mapper);
+        lastUpdate = DateTime.now();
+      }
+    }
   }
 
   static List<T> values<T>(

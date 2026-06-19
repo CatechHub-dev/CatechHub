@@ -285,14 +285,18 @@ class AttachmentsSection extends ConsumerWidget {
     WidgetRef ref,
     Attachment att,
   ) async {
-    final controller = TextEditingController(text: att.name);
+    final originalExtension = _extensionOf(att.name);
+    final controller = TextEditingController(text: _stripExtension(att.name));
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Rinomina allegato'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Nuovo nome del file'),
+          decoration: InputDecoration(
+            hintText: 'Nuovo nome del file',
+            suffixText: originalExtension,
+          ),
           autofocus: true,
         ),
         actions: [
@@ -309,31 +313,42 @@ class AttachmentsSection extends ConsumerWidget {
     );
     controller.dispose();
 
-    final newName = result?.trim();
-    if (newName != null && newName.isNotEmpty && newName != att.name) {
-      final preservedName = _preserveExtension(att.name, newName);
-      await ref
-          .read(attachmentsRepositoryProvider)
-          .updateAttachmentName(attachmentId: att.id, name: preservedName);
+    final typedName = result?.trim();
+    if (typedName != null && typedName.isNotEmpty) {
+      final preservedName = _preserveExtension(
+        att.name,
+        _stripExtension(typedName),
+      );
+      if (preservedName != att.name) {
+        await ref
+            .read(attachmentsRepositoryProvider)
+            .updateAttachmentName(attachmentId: att.id, name: preservedName);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Nome aggiornato in "$preservedName"')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Nome aggiornato in "$preservedName"')),
+          );
+        }
       }
     }
   }
 
   String _preserveExtension(String originalName, String newName) {
-    final originalIndex = originalName.lastIndexOf('.');
-    if (originalIndex < 0) return newName;
+    final originalExtension = _extensionOf(originalName);
+    if (originalExtension.isEmpty) return newName.trim();
+    return '${newName.trim()}$originalExtension';
+  }
 
-    final originalExtension = originalName.substring(originalIndex);
-    final newIndex = newName.lastIndexOf('.');
-    final baseName = newIndex >= 0 ? newName.substring(0, newIndex) : newName;
-    final sanitized = baseName.trim();
+  String _stripExtension(String name) {
+    final index = name.lastIndexOf('.');
+    if (index < 0) return name.trim();
+    return name.substring(0, index).trim();
+  }
 
-    return '$sanitized$originalExtension';
+  String _extensionOf(String name) {
+    final index = name.lastIndexOf('.');
+    if (index < 0 || index == name.length - 1) return '';
+    return name.substring(index);
   }
 
   String _savedMessage(int bytes, String type) {

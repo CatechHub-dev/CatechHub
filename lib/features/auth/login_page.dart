@@ -68,13 +68,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           debugPrint(
             'Login initState - Biometrica disponibile: $_biometricAvailable',
           );
-          if (_biometricAvailable) {
-            debugPrint(
-              'Login initState - Avvio autenticazione biometrica automatica',
-            );
-            _authenticateWithBiometrics();
-          }
         });
+
+        if (_biometricAvailable) {
+          debugPrint(
+            'Login initState - Avvio autenticazione biometrica automatica',
+          );
+          _authenticateWithBiometrics();
+        }
       }
     });
   }

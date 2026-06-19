@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
 
@@ -38,6 +39,24 @@ class UpdateService {
         }
       },
     );
+  }
+
+  static Future<PermissionStatus> notificationPermissionStatus() async {
+    return Permission.notification.status;
+  }
+
+  static Future<PermissionStatus> requestNotificationPermission() async {
+    return Permission.notification.request();
+  }
+
+  static Future<bool> isNotificationPermissionGranted() async {
+    final status = await notificationPermissionStatus();
+    return status == PermissionStatus.granted ||
+        status == PermissionStatus.limited;
+  }
+
+  static Future<bool> openNotificationSettings() async {
+    return openAppSettings();
   }
 
   static Future<void> checkForUpdates() async {

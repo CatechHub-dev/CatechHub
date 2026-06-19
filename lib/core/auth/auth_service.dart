@@ -151,20 +151,30 @@ class AuthService {
     }
   }
 
-  Future<bool> signInWithPin(String inputPin) async {
+  /// Verifica il PIN senza sbloccare la sessione (utile per backup/export).
+  Future<bool> checkPin(String inputPin) async {
     try {
-      final valid = await _verifyStoredPin(
+      return await _verifyStoredPin(
         inputPin,
         _box.get('local_pin_hash'),
       );
+    } catch (e) {
+      debugPrint('Errore durante la verifica del PIN: $e');
+      return false;
+    }
+  }
+
+  Future<bool> signInWithPin(String inputPin) async {
+    try {
+      final valid = await checkPin(inputPin);
       if (valid) {
         _sessionUnlocked = true;
         _cachedUser = null;
         return true;
       }
       return false;
-    } catch (e, stack) {
-      debugPrint('Errore durante il controllo del PIN: $e');
+    } catch (e) {
+      debugPrint('Errore durante il login con PIN: $e');
       return false;
     }
   }

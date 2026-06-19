@@ -143,21 +143,11 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 12),
 
           _SettingsItem(
-            icon: Icons.share_rounded,
-            title: 'Condivisione Dati',
-            subtitle: 'Condividi dati tra dispositivi via QR',
+            icon: Icons.sync_alt_rounded,
+            title: 'Condivisione e backup',
+            subtitle: 'BLE, dispositivi associati e backup cifrati',
             color: Colors.purple,
             onTap: () => context.go('/data-share'),
-          ),
-
-          const SizedBox(height: 12),
-
-          _SettingsItem(
-            icon: Icons.backup_rounded,
-            title: 'Backup',
-            subtitle: 'Esporta o importa un backup completo',
-            color: Colors.teal,
-            onTap: () => context.go('/backup'),
           ),
 
           const SizedBox(height: 12),

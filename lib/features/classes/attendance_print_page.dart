@@ -12,10 +12,7 @@ import 'print_service.dart';
 class AttendancePrintPage extends ConsumerStatefulWidget {
   final SchoolClass schoolClass;
 
-  const AttendancePrintPage({
-    super.key,
-    required this.schoolClass,
-  });
+  const AttendancePrintPage({super.key, required this.schoolClass});
 
   @override
   ConsumerState<AttendancePrintPage> createState() =>
@@ -99,7 +96,9 @@ class _AttendancePrintPageState extends ConsumerState<AttendancePrintPage> {
                         backgroundColor: const Color(0xFF174A7E),
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: _isCustomDate && (_dateFrom == null || _dateTo == null)
+                      onPressed:
+                          _isCustomDate &&
+                              (_dateFrom == null || _dateTo == null)
                           ? null
                           : () => _handlePrint(context),
                       child: const Text(
@@ -122,42 +121,72 @@ class _AttendancePrintPageState extends ConsumerState<AttendancePrintPage> {
 
   Future<void> _handlePrint(BuildContext context) async {
     try {
-      final studentsRaw = ref
-          .read(studentsRepositoryProvider)
-          .getAllStudentsSync()
-          .where((s) => widget.schoolClass.studentIds.contains(s.id))
-          .toList()
-        ..sort(Student.compareBySurname);
+      final studentsRaw =
+          ref
+              .read(studentsRepositoryProvider)
+              .getAllStudentsSync()
+              .where((s) => widget.schoolClass.studentIds.contains(s.id))
+              .toList()
+            ..sort(Student.compareBySurname);
 
-      final allAttendance =
-          ref.read(attendanceRepositoryProvider).getAttendanceSync();
+      final allAttendance = ref
+          .read(attendanceRepositoryProvider)
+          .getAttendanceSync();
 
-      final allMeetings = ref
-          .read(planningRepositoryProvider)
-          .getMeetingsSync()
-          .where((m) => m.classId == widget.schoolClass.id && !m.isReunion)
-          .toList()
-        ..sort((a, b) => a.date.compareTo(b.date));
+      final classMeetings =
+          ref
+              .read(planningRepositoryProvider)
+              .getMeetingsSync()
+              .where((m) => m.classId == widget.schoolClass.id && !m.isReunion)
+              .toList()
+            ..sort((a, b) => a.date.compareTo(b.date));
 
+      var meetings = classMeetings;
       List<Map<String, dynamic>> filteredAttendance = allAttendance
           .where((a) => a['classId'] == widget.schoolClass.id)
           .toList();
 
       if (_isCustomDate && _dateFrom != null && _dateTo != null) {
         filteredAttendance = filteredAttendance.where((a) {
-          final date = DateTime.tryParse(a['date']?.toString() ?? '') ??
-              DateTime.now();
-          return date.isAfter(_dateFrom!) &&
-              date.isBefore(_dateTo!.add(const Duration(days: 1)));
+          final date =
+              DateTime.tryParse(a['date']?.toString() ?? '') ?? DateTime.now();
+          return !date.isBefore(_dateFrom!) && !date.isAfter(_dateTo!);
+        }).toList();
+
+        meetings = classMeetings.where((meeting) {
+          return !meeting.date.isBefore(_dateFrom!) &&
+              !meeting.date.isAfter(_dateTo!);
         }).toList();
       }
 
+      final attendanceCounts = {
+        for (final student in studentsRaw)
+          student.id: {'present': 0, 'absent': 0},
+      };
+
+      for (final record in filteredAttendance) {
+        final presence = Map<String, dynamic>.from(
+          record['presence'] as Map? ?? {},
+        );
+        for (final entry in presence.entries) {
+          if (!attendanceCounts.containsKey(entry.key)) continue;
+          if (entry.value == 'Presente') {
+            attendanceCounts[entry.key]!['present'] =
+                attendanceCounts[entry.key]!['present']! + 1;
+          } else if (entry.value == 'Assente') {
+            attendanceCounts[entry.key]!['absent'] =
+                attendanceCounts[entry.key]!['absent']! + 1;
+          }
+        }
+      }
+
       final students = studentsRaw.map((s) {
+        final counts = attendanceCounts[s.id]!;
         return PrintStudentData(
           id: s.id,
-          fullName: '${s.name} ${s.surname}',
-          present: 0,
-          absent: 0,
+          fullName: '${s.surname} ${s.name}',
+          present: counts['present']!,
+          absent: counts['absent']!,
           consecutiveAbsences: 0,
         );
       }).toList();
@@ -166,15 +195,15 @@ class _AttendancePrintPageState extends ConsumerState<AttendancePrintPage> {
         await PrintService.printDetailedAttendanceReport(
           className: widget.schoolClass.name,
           students: students,
-          meetings: allMeetings,
+          meetings: meetings,
           attendance: filteredAttendance,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Errore: $e')));
       }
     }
   }
@@ -238,10 +267,7 @@ class _RadioOption extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),

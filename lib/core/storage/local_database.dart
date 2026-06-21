@@ -17,6 +17,9 @@ class LocalDatabase {
   static const contactNotesBox = 'contact_notes_box';
   static const pairedDevicesBox = 'paired_devices_box';
   static const syncLogsBox = 'ble_sync_logs_box';
+  static const catechesiBox = 'catechesi_box';
+  static const meetingCatechesiBox = 'meeting_catechesi_box';
+  static const studentDailyNotesBox = 'student_daily_notes_box';
 
   static const _secureStorage = FlutterSecureStorage();
   static const _encryptionKeyName = 'secure_database_key';
@@ -55,6 +58,9 @@ class LocalDatabase {
       Hive.openBox<Map>(contactNotesBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(pairedDevicesBox, encryptionCipher: _cipher),
       Hive.openBox<Map>(syncLogsBox, encryptionCipher: _cipher),
+      Hive.openBox<Map>(catechesiBox, encryptionCipher: _cipher),
+      Hive.openBox(meetingCatechesiBox, encryptionCipher: _cipher),
+      Hive.openBox<Map>(studentDailyNotesBox, encryptionCipher: _cipher),
     ]);
 
     // La sessione non va persistita: rimuove eventuali flag legacy:
@@ -74,6 +80,9 @@ class LocalDatabase {
   static Box<Map> contactNotes() => Hive.box<Map>(contactNotesBox);
   static Box<Map> pairedDevices() => Hive.box<Map>(pairedDevicesBox);
   static Box<Map> syncLogs() => Hive.box<Map>(syncLogsBox);
+  static Box<Map> catechesi() => Hive.box<Map>(catechesiBox);
+  static Box meetingCatechesi() => Hive.box(meetingCatechesiBox);
+  static Box<Map> studentDailyNotes() => Hive.box<Map>(studentDailyNotesBox);
 
   static Uint8List encryptBytes(Uint8List plain) {
     final out = Uint8List(_cipher.maxEncryptedSize(plain));

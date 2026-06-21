@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/contact_note_model.dart';
+import '../../shared/models/planning_meeting.dart';
+import '../../shared/models/student_daily_note_model.dart';
 import '../../shared/models/student_model.dart';
 import '../attachments/widgets/attachments_section.dart';
 import '../contact_notes/contact_notes_repository.dart';
@@ -12,9 +14,15 @@ import '../contact_notes/student_contact_notes_page.dart';
 import '../documents/documents_provider.dart';
 import '../meetings/attendance_repository.dart';
 import '../planning/planning_repository.dart';
+import 'student_daily_notes_repository.dart';
 import 'students_repository.dart';
 
 final studentsRepoProvider = Provider((ref) => StudentsRepository());
+
+final _studentDailyNotesStreamProvider = StreamProvider.autoDispose
+    .family<List<StudentDailyNote>, String>((ref, studentId) {
+  return ref.read(studentDailyNotesRepoProvider).getNotesForStudent(studentId);
+});
 
 final _studentAbsencesProvider = StreamProvider.autoDispose
     .family<List<Map<String, dynamic>>, String>((ref, studentId) {
@@ -49,7 +57,7 @@ final _studentAbsencesProvider = StreamProvider.autoDispose
   });
 });
 
-class StudentQuickViewPage extends ConsumerWidget {
+class StudentQuickViewPage extends ConsumerStatefulWidget {
   final Student student;
 
   const StudentQuickViewPage({
@@ -58,7 +66,27 @@ class StudentQuickViewPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudentQuickViewPage> createState() =>
+      _StudentQuickViewPageState();
+}
+
+class _StudentQuickViewPageState extends ConsumerState<StudentQuickViewPage> {
+  late Student _student;
+
+  @override
+  void initState() {
+    super.initState();
+    _student = widget.student;
+  }
+
+  Future<void> _updateNotes(String? notes) async {
+    final updated = _student.copyWith(notes: notes);
+    await ref.read(studentsRepoProvider).updateStudent(_student.id, updated);
+    setState(() => _student = updated);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -71,30 +99,93 @@ class StudentQuickViewPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _HeaderCard(student: student),
+            _HeaderCard(student: _student),
             const SizedBox(height: 16),
-            _PersonalInfoCard(student: student),
+            _PersonalInfoCard(student: _student),
             const SizedBox(height: 16),
-            _ParentsCard(student: student),
+            _ParentsCard(student: _student),
             const SizedBox(height: 16),
-            _AllergiesCard(student: student),
+            _AllergiesCard(student: _student),
             const SizedBox(height: 16),
-            _DocumentsCard(studentId: student.id),
+            _DocumentsCard(studentId: _student.id),
             const SizedBox(height: 16),
             AttachmentsSection(
-              parentId: student.id,
+              parentId: _student.id,
               parentType: AttachmentParentType.student,
             ),
             const SizedBox(height: 16),
-            _NotesCard(student: student),
+            _NotesCard(
+              student: _student,
+              onEdit: () => _showEditNotesDialog(),
+              onDelete: _student.notes != null && _student.notes!.isNotEmpty
+                  ? () => _showDeleteNotesConfirm()
+                  : null,
+            ),
             const SizedBox(height: 16),
-            _ContactNotesCard(student: student),
+            _DailyAnnotationsCard(studentId: _student.id),
             const SizedBox(height: 16),
-            _AbsencesCard(studentId: student.id),
+            _ContactNotesCard(student: _student),
+            const SizedBox(height: 16),
+            _AbsencesCard(studentId: _student.id),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _showEditNotesDialog() async {
+    final controller = TextEditingController(text: _student.notes ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Modifica note'),
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            hintText: 'Inserisci note generali...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Salva'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      await _updateNotes(result.isEmpty ? null : result);
+    }
+  }
+
+  Future<void> _showDeleteNotesConfirm() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Elimina note'),
+        content: const Text('Vuoi cancellare le note generali?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _updateNotes(null);
+    }
   }
 }
 
@@ -409,8 +500,14 @@ class _DocumentsCard extends ConsumerWidget {
 
 class _NotesCard extends StatelessWidget {
   final Student student;
+  final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
-  const _NotesCard({required this.student});
+  const _NotesCard({
+    required this.student,
+    required this.onEdit,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +515,22 @@ class _NotesCard extends StatelessWidget {
       title: 'Note',
       icon: Icons.note_rounded,
       color: Colors.blue,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit, size: 20),
+            onPressed: onEdit,
+            tooltip: 'Modifica note',
+          ),
+          if (onDelete != null)
+            IconButton(
+              icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+              onPressed: onDelete,
+              tooltip: 'Elimina note',
+            ),
+        ],
+      ),
       children: [
         if (student.notes != null && student.notes!.isNotEmpty)
           Text(
@@ -431,6 +544,263 @@ class _NotesCard extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+class _DailyAnnotationsCard extends ConsumerWidget {
+  final String studentId;
+
+  const _DailyAnnotationsCard({required this.studentId});
+
+  Map<String, PlanningMeeting> _meetingsMap(List<PlanningMeeting> meetings) {
+    return {for (var m in meetings) m.id: m};
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notesAsync = ref.watch(_studentDailyNotesStreamProvider(studentId));
+    return _InfoCard(
+      title: 'Annotazioni giornaliere',
+      icon: Icons.auto_stories_rounded,
+      color: Colors.indigo,
+      trailing: IconButton(
+        icon: const Icon(Icons.add_circle_outline, size: 22, color: Colors.indigo),
+        onPressed: () => _showAddEditDialog(context, ref, null, null),
+        tooltip: 'Aggiungi annotazione',
+      ),
+      children: [
+        notesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Errore: $e'),
+          data: (notes) {
+            if (notes.isEmpty) {
+              return Text(
+                'Nessuna annotazione',
+                style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+              );
+            }
+            final meetings = PlanningRepository().getMeetingsSync();
+            final meetingMap = _meetingsMap(meetings);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: notes.map((note) {
+                final meeting = meetingMap[note.meetingId];
+                final meetingTitle = meeting != null
+                    ? '${DateFormat('dd/MM/yyyy').format(meeting.date)} - ${meeting.title}'
+                    : 'Giornata sconosciuta';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today, size: 14, color: Colors.indigo.shade300),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              meetingTitle,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.indigo.shade700,
+                              ),
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showAddEditDialog(context, ref, note, meetingTitle);
+                              } else if (value == 'delete') {
+                                _showDeleteConfirm(context, ref, note);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Modifica'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, size: 18, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Elimina', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            icon: const Icon(Icons.more_vert, size: 18),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        note.text,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${DateFormat('dd/MM/yy HH:mm').format(note.createdAt)}${note.updatedAt != note.createdAt ? ' (modificato)' : ''}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showAddEditDialog(
+    BuildContext context,
+    WidgetRef ref,
+    StudentDailyNote? existing,
+    String? existingMeetingLabel,
+  ) async {
+    final textController = TextEditingController(text: existing?.text ?? '');
+    final meetings = PlanningRepository().getMeetingsSync()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    String? selectedMeetingId = existing?.meetingId;
+    final themeColor = Colors.indigo;
+
+    final result = await showDialog<Map<String, String>?>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(existing != null ? 'Modifica annotazione' : 'Nuova annotazione'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Giorno di catechesi:', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedMeetingId,
+                    hint: const Text('Seleziona un giorno...'),
+                    isExpanded: true,
+                    items: meetings.map((m) {
+                      return DropdownMenuItem(
+                        value: m.id,
+                        child: Text(
+                          '${DateFormat('dd/MM/yyyy').format(m.date)} - ${m.title}',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      setDialogState(() => selectedMeetingId = v);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: textController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Scrivi annotazione...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = textController.text.trim();
+                if (text.isEmpty || selectedMeetingId == null) return;
+                Navigator.pop(ctx, {
+                  'meetingId': selectedMeetingId!,
+                  'text': text,
+                });
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: themeColor),
+              child: const Text('Salva'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null) return;
+
+    final repo = ref.read(studentDailyNotesRepoProvider);
+    if (existing != null) {
+      final updated = existing.copyWith(
+        meetingId: result['meetingId'],
+        text: result['text'],
+        updatedAt: DateTime.now(),
+      );
+      await repo.updateNote(existing.id, updated);
+    } else {
+      final note = StudentDailyNote(
+        id: '',
+        studentId: studentId,
+        meetingId: result['meetingId']!,
+        text: result['text']!,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await repo.addNote(note);
+    }
+  }
+
+  Future<void> _showDeleteConfirm(
+    BuildContext context,
+    WidgetRef ref,
+    StudentDailyNote note,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Elimina annotazione'),
+        content: const Text('Vuoi cancellare questa annotazione?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(studentDailyNotesRepoProvider).deleteNote(note.id);
+    }
   }
 }
 
@@ -688,12 +1058,14 @@ class _InfoCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final List<Widget> children;
+  final Widget? trailing;
 
   const _InfoCard({
     required this.title,
     required this.icon,
     required this.color,
     required this.children,
+    this.trailing,
   });
 
   @override
@@ -720,14 +1092,17 @@ class _InfoCard extends StatelessWidget {
               children: [
                 Icon(icon, color: color, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
                   ),
                 ),
+                if (trailing != null) trailing!,
               ],
             ),
           ),

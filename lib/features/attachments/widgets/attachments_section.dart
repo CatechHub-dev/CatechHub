@@ -14,11 +14,13 @@ class AttachmentsSection extends ConsumerWidget {
     required this.parentId,
     required this.parentType,
     this.title = 'Foto e documenti',
+    this.readOnly = false,
   });
 
   final String parentId;
   final String parentType;
   final String title;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,12 +66,13 @@ class AttachmentsSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Aggiungi',
-                    onPressed: () => _showAddMenu(context, ref),
-                    icon: const Icon(Icons.add_circle_outline_rounded),
-                    color: const Color(0xFF174A7E),
-                  ),
+                  if (!readOnly)
+                    IconButton(
+                      tooltip: 'Aggiungi',
+                      onPressed: () => _showAddMenu(context, ref),
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                      color: const Color(0xFF174A7E),
+                    ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -90,6 +93,7 @@ class AttachmentsSection extends ConsumerWidget {
                 ...attachments.map(
                   (att) => _AttachmentTile(
                     attachment: att,
+                    readOnly: readOnly,
                     onOpen: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -97,8 +101,8 @@ class AttachmentsSection extends ConsumerWidget {
                         ),
                       );
                     },
-                    onDelete: () => _confirmDelete(context, ref, att),
-                    onRename: () => _renameAttachment(context, ref, att),
+                    onDelete: readOnly ? null : () => _confirmDelete(context, ref, att),
+                    onRename: readOnly ? null : () => _renameAttachment(context, ref, att),
                   ),
                 ),
             ],
@@ -405,15 +409,17 @@ class AttachmentsSection extends ConsumerWidget {
 class _AttachmentTile extends StatelessWidget {
   const _AttachmentTile({
     required this.attachment,
+    required this.readOnly,
     required this.onOpen,
-    required this.onDelete,
-    required this.onRename,
+    this.onDelete,
+    this.onRename,
   });
 
   final Attachment attachment;
+  final bool readOnly;
   final VoidCallback onOpen;
-  final VoidCallback onDelete;
-  final VoidCallback onRename;
+  final VoidCallback? onDelete;
+  final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -437,21 +443,25 @@ class _AttachmentTile extends StatelessWidget {
         subtitle: Text(
           '${attachment.sizeLabel} · ${_formatDate(attachment.createdAt)}',
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit_rounded, color: Colors.blue),
-              onPressed: onRename,
-              tooltip: 'Rinomina',
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-              onPressed: onDelete,
-              tooltip: 'Elimina',
-            ),
-          ],
-        ),
+        trailing: readOnly
+            ? null
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (onRename != null)
+                    IconButton(
+                      icon: const Icon(Icons.edit_rounded, color: Colors.blue),
+                      onPressed: onRename,
+                      tooltip: 'Rinomina',
+                    ),
+                  if (onDelete != null)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                      onPressed: onDelete,
+                      tooltip: 'Elimina',
+                    ),
+                ],
+              ),
         onTap: onOpen,
       ),
     );

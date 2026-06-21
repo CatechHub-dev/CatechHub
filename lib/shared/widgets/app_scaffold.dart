@@ -23,6 +23,7 @@ class AppScaffold extends StatelessWidget {
     if (location.startsWith('/planning')) return 2;
     if (location.startsWith('/documents')) return 3;
     if (location.startsWith('/settings')) return 4;
+    if (location.startsWith('/catechesi')) return 5;
 
     return 0;
   }
@@ -46,6 +47,9 @@ class AppScaffold extends StatelessWidget {
 
       case 4:
         return '/settings';
+
+      case 5:
+        return '/catechesi';
 
       default:
         return '/';
@@ -244,6 +248,11 @@ class AppScaffold extends StatelessWidget {
                       icon: Icon(Icons.settings_outlined),
                       selectedIcon: Icon(Icons.settings),
                       label: 'Impostazioni',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.menu_book_outlined),
+                      selectedIcon: Icon(Icons.menu_book),
+                      label: 'Catechesi',
                     ),
                   ],
                 ),

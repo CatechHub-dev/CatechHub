@@ -28,6 +28,8 @@ class BleDiscoveryService {
       MethodChannel('com.delelimed.catechhub/rfcomm_server');
   static const EventChannel _rfcommEventChannel =
       EventChannel('com.delelimed.catechhub/rfcomm_server_events');
+  static const EventChannel _rfcommDiscoveryEventChannel =
+      EventChannel('com.delelimed.catechhub/rfcomm_discovery_events');
 
   static final BleDiscoveryService _instance = BleDiscoveryService._internal();
   factory BleDiscoveryService() => _instance;
@@ -61,6 +63,7 @@ class BleDiscoveryService {
 
   StreamSubscription<BleDiscoveredAssociationDevice>? _associationSub;
   StreamSubscription<dynamic>? _rfcommEventSub;
+  StreamSubscription<dynamic>? _rfcommDiscoverySub;
 
   String? get currentPairingPayload => _myPairingPayload;
   bool get isAssociationMode => _isAssociationMode;
@@ -71,6 +74,8 @@ class BleDiscoveryService {
       StreamController<bool>.broadcast();
   Stream<bool> get onBleAvailableChanged => _bleAvailableController.stream;
 
+  bool _isClassicDiscoveryActive = false;
+
   /// Check if the device supports BLE advertising/scanning.
   Future<bool> checkBleAvailable() async {
     _bleAvailable = await _associationService.isBleSupported();
@@ -79,8 +84,7 @@ class BleDiscoveryService {
   }
 
   /// Start discovery (BLE advertising + scanning for association).
-  /// Falls back gracefully: without BLE, only RFCOMM server is started
-  /// for manual sync with already-paired devices.
+  /// Falls back to classic Bluetooth discovery when BLE is not available.
   Future<void> startDiscovery(String displayName,
       {String? pairingPayload}) async {
     if (_isActive) return;
@@ -117,7 +121,8 @@ class BleDiscoveryService {
           }
         });
       } else {
-        debugPrint('BLE non supportato su questo dispositivo');
+        debugPrint('BLE non supportato, avvio discovery classico Bluetooth');
+        await _startClassicDiscovery();
       }
 
       // Start RFCOMM server so pairing payloads can be exchanged
@@ -134,6 +139,58 @@ class BleDiscoveryService {
       debugPrint('Errore avvio discovery: $e');
       _isActive = false;
       _isAssociationMode = false;
+    }
+  }
+
+  Future<void> _startClassicDiscovery() async {
+    if (_isClassicDiscoveryActive) return;
+
+    try {
+      final result = await _rfcommMethodChannel.invokeMethod<bool>('startClassicDiscovery');
+      if (result == true) {
+        _isClassicDiscoveryActive = true;
+        _rfcommDiscoverySub?.cancel();
+        _rfcommDiscoverySub = _rfcommDiscoveryEventChannel.receiveBroadcastStream().listen(
+          (data) {
+            if (data is Map) {
+              final map = Map<String, dynamic>.from(data);
+              final address = map['address'] as String? ?? '';
+              final name = map['name'] as String? ?? 'Sconosciuto';
+              if (address.isNotEmpty) {
+                final classicDevice = BleDiscoveredDevice(
+                  id: address,
+                  name: name,
+                  profileName: name,
+                  role: '', // Role unknown until pairing
+                );
+                if (!_foundDevices.any((d) => d.id == classicDevice.id)) {
+                  _foundDevices.add(classicDevice);
+                  _devicesController.add(List.from(_foundDevices));
+                }
+              }
+            }
+          },
+          onError: (e) {
+            debugPrint('Errore event channel discovery classico: $e');
+          },
+        );
+        debugPrint('Discovery classico Bluetooth avviato');
+      }
+    } catch (e) {
+      debugPrint('Errore avvio discovery classico: $e');
+    }
+  }
+
+  Future<void> _stopClassicDiscovery() async {
+    if (!_isClassicDiscoveryActive) return;
+    try {
+      await _rfcommMethodChannel.invokeMethod('stopClassicDiscovery');
+      _rfcommDiscoverySub?.cancel();
+      _rfcommDiscoverySub = null;
+      _isClassicDiscoveryActive = false;
+      debugPrint('Discovery classico Bluetooth fermato');
+    } catch (e) {
+      debugPrint('Errore stop discovery classico: $e');
     }
   }
 
@@ -156,13 +213,14 @@ class BleDiscoveryService {
   }
 
   /// Connect via RFCOMM and exchange pairing payloads (public keys).
+  /// Uses insecure RFCOMM to avoid system pairing dialog.
   Future<String> connectAndExchangeKeys(
       BleDiscoveredDevice target, String localPayloadJson) async {
     final address = target.id;
-    debugPrint('Connessione RFCOMM a $address');
+    debugPrint('Connessione RFCOMM a $address per scambio chiavi');
 
     final response = await _rfcommMethodChannel.invokeMethod<String>(
-      'connectAndExchange',
+      'connectAndExchangeKeys',
       {'address': address, 'payload': localPayloadJson},
     ).timeout(const Duration(seconds: 30));
 

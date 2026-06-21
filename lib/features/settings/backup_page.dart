@@ -286,7 +286,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         ),
         content: const Text(
           'L\'importazione sostituirà tutti i dati esistenti '
-          '(anagrafica, presenze, programmazione, documenti e allegati). '
+          '(anagrafica, presenze, programmazione, catechesi, documenti e allegati). '
           'Questa operazione non è reversibile.\n\n'
           'Vuoi continuare?',
         ),
@@ -372,8 +372,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Il backup include tutti i dati dell\'app: anagrafica, '
-                    'presenze, programmazione, documenti e allegati (foto e PDF).\n\n'
+                     'Il backup include tutti i dati dell\'app: anagrafica, '
+                     'presenze, programmazione, catechesi, documenti e allegati (foto e PDF).\n\n'
                     'Il file è protetto dal tuo PIN e può essere importato '
                     'su un altro dispositivo.',
                     style: TextStyle(fontSize: 13, color: Colors.blue.shade900),

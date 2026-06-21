@@ -5,11 +5,13 @@ import 'package:hive/hive.dart';
 
 import '../storage/encrypted_file_storage.dart';
 import '../storage/local_database.dart';
+import '../../shared/models/catechesi_model.dart';
 import '../../shared/models/student_model.dart';
 import '../../shared/models/class_model.dart';
 import '../../shared/models/planning_meeting.dart';
 import '../../shared/models/attachment_model.dart';
 import '../../shared/models/contact_note_model.dart';
+import '../../shared/models/student_daily_note_model.dart';
 import 'encryption_service.dart';
 
 class DataExportService {
@@ -23,21 +25,26 @@ class DataExportService {
       'allegati_giornate': await _exportAllegatiPerTipo('meeting'),
       'documenti': _exportDocumenti(),
       'note_contatto': _exportNoteContatto(),
+      'catechesi': _exportCatechesi(),
+      'associazioni_catechesi': _exportAssociazioniCatechesi(),
+      'allegati_catechesi': await _exportAllegatiPerTipo('catechesi'),
+      'annotazioni_giornaliere': _exportStudentDailyNotes(),
     };
 
     return allData;
   }
 
   // Esporta dati selettivi basati su opzioni
-  static Future<Map<String, dynamic>> exportSelectiveData(
-    bool includeAnagrafica,
-    bool includeAgenda,
-    bool includeProgrammazione,
-    bool includeDocumenti,
-    bool includeContactNotes,
-    bool includeAnagraficaAttachments,
-    bool includeAgendaAttachments,
-  ) async {
+  static Future<Map<String, dynamic>> exportSelectiveData({
+    bool includeAnagrafica = false,
+    bool includeAgenda = false,
+    bool includeProgrammazione = false,
+    bool includeDocumenti = false,
+    bool includeContactNotes = false,
+    bool includeAnagraficaAttachments = false,
+    bool includeAgendaAttachments = false,
+    bool includeCatechesi = false,
+  }) async {
     final Map<String, dynamic> selectiveData = {};
 
     if (includeAnagrafica) {
@@ -68,6 +75,11 @@ class DataExportService {
 
     if (includeContactNotes) {
       selectiveData['note_contatto'] = _exportNoteContatto();
+    }
+
+    if (includeCatechesi) {
+      selectiveData['catechesi'] = _exportCatechesi();
+      selectiveData['associazioni_catechesi'] = _exportAssociazioniCatechesi();
     }
 
     return selectiveData;
@@ -196,6 +208,26 @@ class DataExportService {
     // Importa note di contatto
     if (receivedData.containsKey('note_contatto')) {
       await _importNoteContatto(receivedData['note_contatto']);
+    }
+
+    // Importa catechesi
+    if (receivedData.containsKey('catechesi')) {
+      await _importCatechesi(receivedData['catechesi']);
+    }
+
+    // Importa associazioni catechesi
+    if (receivedData.containsKey('associazioni_catechesi')) {
+      await _importAssociazioniCatechesi(receivedData['associazioni_catechesi']);
+    }
+
+    // Importa allegati delle catechesi
+    if (receivedData.containsKey('allegati_catechesi')) {
+      await _importAllegati(receivedData['allegati_catechesi'], 'catechesi');
+    }
+
+    // Importa annotazioni giornaliere
+    if (receivedData.containsKey('annotazioni_giornaliere')) {
+      await _importStudentDailyNotes(receivedData['annotazioni_giornaliere']);
     }
   }
 
@@ -428,6 +460,29 @@ class DataExportService {
     }
   }
 
+  // Esporta catechesi
+  static Map<String, dynamic> _exportCatechesi() {
+    final catechesi = LocalDatabase.values(
+      LocalDatabase.catechesi(),
+      (id, data) => Catechesi.fromMap(id, data),
+    );
+
+    return {'catechesi': catechesi.map((c) => c.toMap()..['id'] = c.id).toList()};
+  }
+
+  // Esporta associazioni catechesi-giornate
+  static Map<String, dynamic> _exportAssociazioniCatechesi() {
+    final box = LocalDatabase.meetingCatechesi();
+    final associations = <Map<String, dynamic>>[];
+    for (final key in box.keys) {
+      final value = box.get(key);
+      if (value is List) {
+        associations.add({'meetingId': key.toString(), 'catechesiIds': value});
+      }
+    }
+    return {'associazioni': associations};
+  }
+
   // Esporta note di contatto
   static Map<String, dynamic> _exportNoteContatto() {
     final notes = LocalDatabase.values(
@@ -444,6 +499,53 @@ class DataExportService {
       LocalDatabase.contactNotes(),
       noteData['notes'] as List<dynamic>?,
     );
+  }
+
+  // Importa catechesi
+  static Future<void> _importCatechesi(Map<String, dynamic> catechesiData) async {
+    await _mergeBoxRecords(
+      LocalDatabase.catechesi(),
+      catechesiData['catechesi'] as List<dynamic>?,
+    );
+  }
+
+  // Esporta annotazioni giornaliere
+  static Map<String, dynamic> _exportStudentDailyNotes() {
+    final notes = LocalDatabase.values(
+      LocalDatabase.studentDailyNotes(),
+      (id, data) => StudentDailyNote.fromMap(id, data),
+    );
+    return {
+      'notes': notes.map((n) => n.toMap()..['id'] = n.id).toList()
+    };
+  }
+
+  // Importa annotazioni giornaliere
+  static Future<void> _importStudentDailyNotes(
+    Map<String, dynamic> notesData,
+  ) async {
+    await _mergeBoxRecords(
+      LocalDatabase.studentDailyNotes(),
+      notesData['notes'] as List<dynamic>?,
+    );
+  }
+
+  // Importa associazioni catechesi
+  static Future<void> _importAssociazioniCatechesi(
+    Map<String, dynamic> associazioniData,
+  ) async {
+    final box = LocalDatabase.meetingCatechesi();
+    final incoming = associazioniData['associazioni'] as List<dynamic>?;
+    if (incoming == null) return;
+
+    for (final item in incoming) {
+      final map = Map<String, dynamic>.from(item as Map);
+      final meetingId = map['meetingId']?.toString() ?? '';
+      final ids = (map['catechesiIds'] as List<dynamic>?)?.cast<String>() ?? [];
+      if (meetingId.isNotEmpty) {
+        await box.put(meetingId, ids);
+      }
+    }
   }
 
   // Verifica integrità dei dati ricevuti
@@ -475,6 +577,9 @@ class DataExportService {
       'allegati_giornate',
       'note_contatto',
       'allegati',
+      'catechesi',
+      'associazioni_catechesi',
+      'annotazioni_giornaliere',
     };
 
     return receivedData.keys.any(supportedFields.contains);

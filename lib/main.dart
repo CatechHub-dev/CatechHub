@@ -39,6 +39,7 @@ Future<void> main() async {
 
   _initUpdateServiceNavigatorKey();
   await UpdateService.initNotifications();
+  await UpdateService.cleanupOldApks();
   if (privacy.checkUpdatesOnStart) {
     await UpdateService.checkForUpdates();
   }

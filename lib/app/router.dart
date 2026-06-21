@@ -29,6 +29,10 @@ import '../features/update/update_page.dart';
 import '../features/data_share/data_share_selection_page.dart';
 import '../features/data_share/data_share_send_page.dart';
 import '../features/data_share/data_share_receive_page.dart';
+import '../features/catechesi/catechesi_page.dart';
+import '../features/catechesi/catechesi_edit_page.dart';
+import '../features/catechesi/catechesi_detail_page.dart';
+import '../shared/models/catechesi_model.dart';
 
 // Ottimizzato per GoRouter v17: implementa Listenable per notificare i cambi di stato auth
 class _AuthStateNotifier extends ChangeNotifier {
@@ -213,6 +217,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/data-share/receive',
         builder: (context, state) => const DataShareReceivePage(),
+      ),
+
+      /// CATECHESI
+      GoRoute(
+        path: '/catechesi',
+        builder: (context, state) => const CatechesiPage(),
+      ),
+
+      GoRoute(
+        path: '/catechesi/edit',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final catechesi = extra['catechesi'] as Catechesi?;
+          return CatechesiEditPage(existing: catechesi);
+        },
+      ),
+
+      GoRoute(
+        path: '/catechesi/detail',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final catechesi = extra['catechesi'] as Catechesi?;
+          return CatechesiDetailPage(catechesi: catechesi!);
+        },
       ),
     ],
   );

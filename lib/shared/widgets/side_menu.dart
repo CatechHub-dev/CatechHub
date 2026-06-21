@@ -67,6 +67,13 @@ class SideMenu extends StatelessWidget {
           _item(
             context,
             location,
+            '/catechesi',
+            Icons.menu_book_rounded,
+            'Catechesi',
+          ),
+          _item(
+            context,
+            location,
             '/settings',
             Icons.settings_rounded,
             'Impostazioni',

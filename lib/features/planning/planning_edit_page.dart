@@ -6,6 +6,9 @@ import '../../core/storage/local_database.dart';
 import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/planning_meeting.dart';
 import '../attachments/widgets/attachments_section.dart';
+import '../catechesi/catechesi_repository.dart';
+import '../../shared/models/catechesi_model.dart';
+import '../catechesi/catechesi_detail_page.dart';
 import '../classes/classes_provider.dart';
 import 'planning_provider.dart';
 
@@ -35,6 +38,8 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
   final activity = TextEditingController();
   final notes = TextEditingController();
 
+  List<String> associatedCatechesiIds = [];
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +53,21 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
       activity.text = meeting.activity;
       notes.text = meeting.notes;
     }
+
+    associatedCatechesiIds = _loadAssociatedCatechesi();
+  }
+
+  List<String> _loadAssociatedCatechesi() {
+    final box = LocalDatabase.meetingCatechesi();
+    final data = box.get(meetingId);
+    if (data == null) return [];
+    final list = (data as List<dynamic>?)?.cast<String>() ?? [];
+    return list;
+  }
+
+  Future<void> _saveAssociatedCatechesi() async {
+    final box = LocalDatabase.meetingCatechesi();
+    await box.put(meetingId, associatedCatechesiIds);
   }
 
   @override
@@ -190,6 +210,13 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
                   parentType: AttachmentParentType.meeting,
                   title: 'Foto e PDF dell\'incontro',
                 ),
+                const SizedBox(height: 20),
+                _CatechesiAssociationSection(
+                  associatedIds: associatedCatechesiIds,
+                  onChanged: (ids) {
+                    setState(() => associatedCatechesiIds = ids);
+                  },
+                ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -245,6 +272,7 @@ class _PlanningEditPageState extends ConsumerState<PlanningEditPage> {
                         } else {
                           await repo.updateMeeting(meeting.id, meeting);
                         }
+                        await _saveAssociatedCatechesi();
 
                         if (context.mounted) {
                           Navigator.pop(context);
@@ -407,6 +435,220 @@ class _ModernInputCard extends StatelessWidget {
           const SizedBox(height: 10),
           child,
         ],
+      ),
+    );
+  }
+}
+
+class _CatechesiAssociationSection extends StatefulWidget {
+  final List<String> associatedIds;
+  final ValueChanged<List<String>> onChanged;
+
+  const _CatechesiAssociationSection({
+    required this.associatedIds,
+    required this.onChanged,
+  });
+
+  @override
+  State<_CatechesiAssociationSection> createState() => _CatechesiAssociationSectionState();
+}
+
+class _CatechesiAssociationSectionState extends State<_CatechesiAssociationSection> {
+  late List<String> _selectedIds;
+
+  List<Catechesi> _allCatechesi() => CatechesiRepository().getCatechesiSync();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIds = List.from(widget.associatedIds);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final all = _allCatechesi();
+    final selected = all.where((c) => _selectedIds.contains(c.id)).toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.menu_book_rounded, color: Colors.deepPurple.shade700),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Catechesi associate',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF174A7E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (selected.isEmpty)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Nessuna catechesi associata',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _showPicker(context),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Aggiungi'),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                ...selected.map((c) {
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      final repo = CatechesiRepository();
+                      final fullCatechesi = repo.getCatechesiSync().firstWhere(
+                        (x) => x.id == c.id,
+                        orElse: () => c,
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CatechesiDetailPage(catechesi: fullCatechesi),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.deepPurple.shade100),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              c.title,
+                              style: TextStyle(color: Colors.deepPurple.shade900),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            color: Colors.deepPurple.shade700,
+                            onPressed: () {
+                              setState(() {
+                                _selectedIds.remove(c.id);
+                              });
+                              widget.onChanged(_selectedIds);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => _showPicker(context),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Aggiungi altra catechesi'),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPicker(BuildContext context) async {
+    final repo = CatechesiRepository();
+    final all = repo.getCatechesiSync();
+    final candidates = all.where((c) => !_selectedIds.contains(c.id)).toList();
+
+    await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              const Text(
+                'Seleziona catechesi',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: candidates.length,
+                  itemBuilder: (context, i) {
+                    final c = candidates[i];
+                    return ListTile(
+                      title: Text(c.title),
+                      subtitle: c.tags.isEmpty
+                          ? null
+                          : Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: c.tags
+                                  .take(3)
+                                  .map((t) => Chip(
+                                        label: Text(t, style: const TextStyle(fontSize: 11)),
+                                        visualDensity: VisualDensity.compact,
+                                        backgroundColor: Colors.blue.shade50,
+                                        side: BorderSide(color: Colors.blue.shade100),
+                                      ))
+                                  .toList(),
+                            ),
+                      onTap: () {
+                        setState(() {
+                          _selectedIds.add(c.id);
+                        });
+                        widget.onChanged(_selectedIds);
+                        Navigator.pop(ctx, _selectedIds);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

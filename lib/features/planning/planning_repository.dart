@@ -63,6 +63,7 @@ class PlanningRepository {
       parentId: id,
       parentType: AttachmentParentType.meeting,
     );
+    await LocalDatabase.meetingCatechesi().delete(id);
     await _box.delete(id);
     await LocalDatabase.attendance().delete(id);
   }

@@ -81,6 +81,15 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
             };
             _isLoading = false;
           });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Nuova versione $latestVersion disponibile!'),
+                backgroundColor: const Color(0xFF174A7E),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         } else {
           setState(() {
             _errorMessage = 'Hai già l\'ultima versione ($currentVersion)';
@@ -206,13 +215,7 @@ class _UpdatePageState extends ConsumerState<UpdatePage> {
         ).showSnackBar(SnackBar(content: Text('Errore download: $e')));
       }
     } finally {
-      if (downloadedFile != null && await downloadedFile.exists()) {
-        try {
-          await downloadedFile.delete();
-        } catch (_) {
-          // Ignora se non è possibile cancellare il file.
-        }
-      }
+      await UpdateService.cleanupOldApks();
     }
   }
 

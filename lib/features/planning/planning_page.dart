@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/storage/local_database.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/models/planning_meeting.dart';
 import '../classes/classes_provider.dart';
+import '../catechesi/catechesi_repository.dart';
+import '../catechesi/catechesi_detail_page.dart';
 import 'planning_provider.dart';
 import 'planning_edit_page.dart';
-import '../../shared/models/planning_meeting.dart';
 
 class PlanningPage extends ConsumerWidget {
   const PlanningPage({super.key});
@@ -23,9 +27,6 @@ class PlanningPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Programmazione',
 
-      ///
-      /// FLOATING BUTTON
-      ///
       floatingActionButton: FloatingActionButton.extended(
         elevation: 4,
         backgroundColor: const Color(0xFF174A7E),
@@ -38,9 +39,6 @@ class PlanningPage extends ConsumerWidget {
         onPressed: () => _showAddMenu(context),
       ),
 
-      ///
-      /// BODY
-      ///
       child: classesAsync.when(
         data: (classes) {
           final myClass = classes.where(
@@ -51,8 +49,7 @@ class PlanningPage extends ConsumerWidget {
             return _EmptyState(
               icon: Icons.groups_rounded,
               title: 'Nessuna classe assegnata',
-              subtitle:
-                  'Non risulti ancora assegnato ad un gruppo di catechismo.',
+              subtitle: 'Non risulti ancora assegnato ad un gruppo di catechismo.',
             );
           }
 
@@ -61,9 +58,6 @@ class PlanningPage extends ConsumerWidget {
           return StreamBuilder<List<PlanningMeeting>>(
             stream: repo.getMeetings(),
             builder: (context, snapshot) {
-              ///
-              /// LOADING
-              ///
               if (!snapshot.hasData) {
                 return const Center(
                   child: CircularProgressIndicator(),
@@ -75,53 +69,51 @@ class PlanningPage extends ConsumerWidget {
                   .toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
 
-              ///
-              /// EMPTY
-              ///
-              if (meetings.isEmpty) {
-                return _EmptyState(
-                  icon: Icons.event_note_rounded,
-                  title: 'Nessuna programmazione',
-                  subtitle:
-                      'Inizia creando il primo incontro del percorso.',
-                );
-              }
+              // Load all catechesi associations once
+              final assocBox = LocalDatabase.meetingCatechesi();
+              final catechesiRepo = CatechesiRepository();
+              final allCatechesi = catechesiRepo.getCatechesiSync();
 
-              ///
-              /// LISTA
-              ///
               return ListView.separated(
                 padding: const EdgeInsets.only(bottom: 100),
-                itemCount: meetings.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: 14),
+                itemCount: meetings.length + 1,
+                separatorBuilder: (_, i) =>
+                    i == 0 ? const SizedBox(height: 16) : const SizedBox(height: 14),
                 itemBuilder: (_, i) {
-                  final m = meetings[i];
+                  if (i == 0) {
+                    return _CatechesiBanner(
+                      onTap: () => context.go('/catechesi'),
+                    );
+                  }
+
+                  final m = meetings[i - 1];
                   final isReunion = m.isReunion;
                   final accentColor =
                       isReunion ? Colors.deepPurple : const Color(0xFF174A7E);
 
                   final formattedDate =
-                      DateFormat('dd MMMM yyyy', 'it_IT')
-                          .format(m.date);
+                      DateFormat('dd MMMM yyyy', 'it_IT').format(m.date);
+
+                  // Get associated catechesi for this meeting
+                  final assocData = assocBox.get(m.id);
+                  final assocIds = (assocData as List<dynamic>?)?.cast<String>() ?? [];
+                  final meetingCatechesi = allCatechesi
+                      .where((c) => assocIds.contains(c.id))
+                      .toList();
 
                   return InkWell(
                     borderRadius: BorderRadius.circular(24),
-
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              PlanningEditPage(existing: m),
+                          builder: (_) => PlanningEditPage(existing: m),
                         ),
                       );
                     },
-
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.all(20),
-
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -131,13 +123,10 @@ class PlanningPage extends ConsumerWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-
                         borderRadius: BorderRadius.circular(24),
-
                         border: Border.all(
                           color: Colors.blue.shade100,
                         ),
-
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.04),
@@ -146,40 +135,28 @@ class PlanningPage extends ConsumerWidget {
                           ),
                         ],
                       ),
-
                       child: Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ///
-                          /// DATA BOX
-                          ///
                           Container(
                             width: 74,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: accentColor,
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
                               children: [
                                 Text(
-                                  DateFormat('dd')
-                                      .format(m.date),
+                                  DateFormat('dd').format(m.date),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-
                                 Text(
-                                  DateFormat('MMM', 'it_IT')
-                                      .format(m.date)
-                                      .toUpperCase(),
+                                  DateFormat('MMM', 'it_IT').format(m.date).toUpperCase(),
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontWeight: FontWeight.w600,
@@ -188,42 +165,31 @@ class PlanningPage extends ConsumerWidget {
                               ],
                             ),
                           ),
-
                           const SizedBox(width: 18),
-
-                          ///
-                          /// TESTI
-                          ///
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
                                     Expanded(
                                       child: Text(
                                         m.title,
-                                        style: theme
-                                            .textTheme.titleMedium
-                                            ?.copyWith(
-                                          fontWeight:
-                                              FontWeight.bold,
+                                        style: theme.textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
                                           color: accentColor,
                                         ),
                                       ),
                                     ),
                                     if (isReunion)
                                       Container(
-                                        padding:
-                                            const EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.deepPurple.shade50,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
                                           'Riunione',
@@ -236,9 +202,7 @@ class PlanningPage extends ConsumerWidget {
                                       ),
                                   ],
                                 ),
-
                                 const SizedBox(height: 6),
-
                                 Text(
                                   formattedDate,
                                   style: TextStyle(
@@ -246,82 +210,53 @@ class PlanningPage extends ConsumerWidget {
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-
                                 const SizedBox(height: 10),
-
-                                ///
-                                /// ATTIVITA
-                                ///
                                 Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Icon(
                                       Icons.menu_book_rounded,
                                       size: 18,
-                                      color:
-                                          Colors.orange.shade700,
+                                      color: Colors.orange.shade700,
                                     ),
-
                                     const SizedBox(width: 8),
-
                                     Expanded(
                                       child: Text(
                                         m.activity,
                                         maxLines: 3,
-                                        overflow:
-                                            TextOverflow.ellipsis,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           height: 1.4,
                                           fontSize: 15,
-                                          fontWeight:
-                                              FontWeight.w500,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-
-                                if (m.notes
-                                    .trim()
-                                    .isNotEmpty) ...[
+                                if (m.notes.trim().isNotEmpty) ...[
                                   const SizedBox(height: 14),
-
                                   Container(
                                     width: double.infinity,
-                                    padding:
-                                        const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color:
-                                          Colors.grey.shade100,
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                        16,
-                                      ),
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment
-                                              .start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Icon(
                                           Icons.notes_rounded,
                                           size: 18,
-                                          color: Colors
-                                              .grey.shade700,
+                                          color: Colors.grey.shade700,
                                         ),
-
-                                        const SizedBox(
-                                            width: 8),
-
+                                        const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
                                             m.notes,
-                                            style:
-                                                TextStyle(
-                                              color: Colors
-                                                  .grey
-                                                  .shade800,
+                                            style: TextStyle(
+                                              color: Colors.grey.shade800,
                                               height: 1.35,
                                             ),
                                           ),
@@ -330,41 +265,79 @@ class PlanningPage extends ConsumerWidget {
                                     ),
                                   ),
                                 ],
+                                if (meetingCatechesi.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: meetingCatechesi.map((c) {
+                                      return InkWell(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  CatechesiDetailPage(catechesi: c),
+                                            ),
+                                          );
+                                        },
+                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.deepPurple.shade50,
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: Colors.deepPurple.shade100,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.menu_book_rounded,
+                                                size: 14,
+                                                color: Colors.deepPurple.shade700,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                c.title,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.deepPurple.shade900,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
-
-                          ///
-                          /// MENU
-                          ///
                           PopupMenuButton<String>(
-                            icon: const Icon(
-                              Icons.more_vert_rounded,
-                            ),
-
+                            icon: const Icon(Icons.more_vert_rounded),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(18),
                             ),
-
                             onSelected: (v) async {
                               if (v == 'delete') {
                                 await repo.deleteMeeting(m.id);
                               }
-
                               if (v == 'edit') {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        PlanningEditPage(
-                                      existing: m,
-                                    ),
+                                    builder: (_) => PlanningEditPage(existing: m),
                                   ),
                                 );
                               }
                             },
-
                             itemBuilder: (_) => const [
                               PopupMenuItem(
                                 value: 'edit',
@@ -397,17 +370,9 @@ class PlanningPage extends ConsumerWidget {
             },
           );
         },
-
-        ///
-        /// LOADING
-        ///
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
-
-        ///
-        /// ERROR
-        ///
         error: (e, _) => Center(
           child: Container(
             padding: const EdgeInsets.all(20),
@@ -479,9 +444,97 @@ class PlanningPage extends ConsumerWidget {
   }
 }
 
-///
-/// EMPTY STATE
-///
+class _CatechesiBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _CatechesiBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF174A7E),
+              Color(0xFF2A6BB0),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.15),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Catechesi',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Gestisci le tue raccolte di catechesi',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Apri',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -514,9 +567,7 @@ class _EmptyState extends StatelessWidget {
                 color: const Color(0xFF174A7E),
               ),
             ),
-
             const SizedBox(height: 24),
-
             Text(
               title,
               style: const TextStyle(
@@ -525,9 +576,7 @@ class _EmptyState extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 10),
-
             Text(
               subtitle,
               style: TextStyle(

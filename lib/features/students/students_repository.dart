@@ -5,6 +5,7 @@ import '../../shared/models/attachment_parent_type.dart';
 import '../../shared/models/student_model.dart';
 import '../../shared/utils/name_formatting.dart';
 import '../attachments/attachments_repository.dart';
+import 'student_daily_notes_repository.dart';
 
 final studentsRepositoryProvider =
     Provider<StudentsRepository>((ref) {
@@ -68,6 +69,7 @@ class StudentsRepository {
       parentId: id,
       parentType: AttachmentParentType.student,
     );
+    await StudentDailyNotesRepository().deleteAllForStudent(id);
     await _box.delete(id);
 
     final classesBox = LocalDatabase.classes();

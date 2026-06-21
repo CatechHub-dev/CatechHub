@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
@@ -118,5 +120,27 @@ class UpdateService {
       notificationDetails: platformDetails,
       payload: 'update_available', // Payload per aprire la pagina
     );
+  }
+
+  /// Cancella tutti i file .apk residui nelle directory dell'app.
+  static Future<void> cleanupOldApks() async {
+    try {
+      final directories = [
+        await getExternalStorageDirectory(),
+        await getApplicationDocumentsDirectory(),
+        await getTemporaryDirectory(),
+      ];
+      for (final dir in directories) {
+        if (dir == null || !await dir.exists()) continue;
+        final files = dir.listSync();
+        for (final file in files) {
+          if (file is File && file.path.endsWith('.apk')) {
+            await file.delete();
+          }
+        }
+      }
+    } catch (_) {
+      // Ignora errori di pulizia
+    }
   }
 }

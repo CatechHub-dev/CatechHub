@@ -4,6 +4,10 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -36,6 +40,12 @@ class RfcommServerPlugin(private val engine: FlutterEngine) {
     @Volatile private var responseData: ByteArray? = null
     private var eventSink: EventChannel.EventSink? = null
 
+    // Classic Bluetooth discovery
+    private var discoveryReceiver: BroadcastReceiver? = null
+    @Volatile private var isDiscovering = false
+    private val discoveredDevices = mutableMapOf<String, BluetoothDevice>()
+    private var discoveryEventSink: EventChannel.EventSink? = null
+
     private val methodHandler = MethodChannel.MethodCallHandler { call, result ->
         when (call.method) {
             "startServer" -> {
@@ -57,6 +67,18 @@ class RfcommServerPlugin(private val engine: FlutterEngine) {
                 Thread({
                     try {
                         val response = connectAndExchange(address, payload)
+                        result.success(response)
+                    } catch (e: Exception) {
+                        result.error("RFCOMM_ERROR", e.message, null)
+                    }
+                }, "rfcomm-client").start()
+            }
+            "connectAndExchangeKeys" -> {
+                val address = call.argument<String>("address") ?: ""
+                val payload = call.argument<String>("payload") ?: ""
+                Thread({
+                    try {
+                        val response = connectAndExchangeKeys(address, payload)
                         result.success(response)
                     } catch (e: Exception) {
                         result.error("RFCOMM_ERROR", e.message, null)
@@ -96,6 +118,13 @@ class RfcommServerPlugin(private val engine: FlutterEngine) {
                     }
                 }, "rfcomm-respond").start()
             }
+            "startClassicDiscovery" -> {
+                result.success(startClassicDiscovery())
+            }
+            "stopClassicDiscovery" -> {
+                stopClassicDiscovery()
+                result.success(null)
+            }
             else -> result.notImplemented()
         }
     }
@@ -110,12 +139,25 @@ class RfcommServerPlugin(private val engine: FlutterEngine) {
         }
     }
 
+    private val discoveryEventHandler = object : EventChannel.StreamHandler {
+        override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+            discoveryEventSink = events
+        }
+
+        override fun onCancel(arguments: Any?) {
+            discoveryEventSink = null
+        }
+    }
+
     fun register() {
         MethodChannel(engine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
             .setMethodCallHandler(methodHandler)
 
         EventChannel(engine.dartExecutor.binaryMessenger, EVENT_CHANNEL)
             .setStreamHandler(eventHandler)
+
+        EventChannel(engine.dartExecutor.binaryMessenger, "com.delelimed.catechhub/rfcomm_discovery_events")
+            .setStreamHandler(discoveryEventHandler)
     }
 
     private fun startServer(): Boolean {
@@ -296,5 +338,110 @@ class RfcommServerPlugin(private val engine: FlutterEngine) {
         } finally {
             try { socket.close() } catch (_: IOException) {}
         }
+    }
+
+    private fun connectAndExchangeKeys(address: String, payload: String): ByteArray {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+            ?: throw IOException("Bluetooth non disponibile")
+        val device = adapter.getRemoteDevice(address)
+        adapter.cancelDiscovery()
+
+        // Use insecure RFCOMM to avoid system pairing dialog
+        val socket = device.createInsecureRfcommSocketToServiceRecord(SERVICE_UUID)
+        try {
+            socket.connect()
+            val payloadBytes = payload.toByteArray(Charsets.UTF_8)
+            socket.outputStream.write(payloadBytes)
+            socket.outputStream.flush()
+            Log.d(TAG, "Inviato payload ${payloadBytes.size} bytes a $address")
+            val buffer = ByteArray(4096)
+            val bytes = socket.inputStream.read(buffer)
+            if (bytes <= 0) throw IOException("Nessuna risposta")
+            val response = ByteArray(bytes)
+            System.arraycopy(buffer, 0, response, 0, bytes)
+            Log.d(TAG, "Ricevuta risposta ${response.size} bytes da $address")
+            return response
+        } finally {
+            try { socket.close() } catch (_: IOException) {}
+        }
+    }
+
+    private fun startClassicDiscovery(): Boolean {
+        val adapter = BluetoothAdapter.getDefaultAdapter() ?: return false
+        if (isDiscovering) return true
+        if (!adapter.isEnabled) {
+            Log.e(TAG, "Bluetooth non abilitato per discovery classico")
+            return false
+        }
+
+        discoveredDevices.clear()
+
+        discoveryReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val action = intent?.action
+                when (action) {
+                    BluetoothDevice.ACTION_FOUND -> {
+                        val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                        device?.let {
+                            if (!discoveredDevices.containsKey(it.address)) {
+                                discoveredDevices[it.address] = it
+                                // Check if device has our service UUID via SDP
+                                checkServiceOnDevice(it)
+                            }
+                        }
+                    }
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                        Log.d(TAG, "Discovery classico completato. Trovati ${discoveredDevices.size} dispositivi")
+                        isDiscovering = false
+                    }
+                }
+            }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+        engine.activity?.registerReceiver(discoveryReceiver, filter)
+
+        adapter.cancelDiscovery()
+        val started = adapter.startDiscovery()
+        if (started) {
+            isDiscovering = true
+            Log.d(TAG, "Discovery classico avviato")
+        }
+        return started
+    }
+
+    private fun checkServiceOnDevice(device: BluetoothDevice) {
+        Thread({
+            try {
+                // Try to fetch SDP records for our UUID using insecure socket to avoid pairing dialog
+                val socket = device.createInsecureRfcommSocketToServiceRecord(SERVICE_UUID)
+                socket.connect()
+                socket.close()
+                // If connection succeeds, device has our service
+                Log.d(TAG, "Dispositivo con servizio CatechHub trovato: ${device.name} (${device.address})")
+                discoveryEventSink?.success(mapOf(
+                    "address" to device.address ?: "",
+                    "name" to device.name ?: device.address ?: "Sconosciuto"
+                ))
+            } catch (e: IOException) {
+                // Device doesn't have our service, ignore
+                Log.d(TAG, "Dispositivo ${device.address} non ha il servizio CatechHub: ${e.message}")
+            }
+        }, "sdp-check-${device.address}").start()
+    }
+
+    private fun stopClassicDiscovery() {
+        if (!isDiscovering) return
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        adapter?.cancelDiscovery()
+        discoveryReceiver?.let { receiver ->
+            try { engine.activity?.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+        discoveryReceiver = null
+        isDiscovering = false
+        Log.d(TAG, "Discovery classico fermato")
     }
 }
